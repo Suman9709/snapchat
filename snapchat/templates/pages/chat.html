@@ -1,0 +1,120 @@
+{% extends 'index.html' %}
+{% block main %}
+<div class="dock shadow-xs px-4 absolute top-0 flex justify-between dock-lg">
+    <div class="flex flex-row gap-3 justify-start items-center">
+        <div class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
+            <i class="fa-solid fa-user text-yellow-300"></i>
+        </div>
+        <div class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
+            <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+    </div>
+    <h1 class="text-xl font-semibold">Chat</h1>
+    <div class="flex flex-row gap-3 justify-end items-center">
+        <div class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
+            <i class="fa-regular fa-bell"></i>
+        </div>
+        <div class="size-[32px] bg-yellow-300 flex justify-center items-center rounded-full p-2">
+            <i class="fa-solid fa-user-plus"></i>
+        </div>
+        <div class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
+            <i class="fa-solid fa-ellipsis fa-lg"></i>
+        </div>
+    </div>
+</div>
+<main class="mt-24 px-4">
+    <ul class="space-y-6">
+        <li class="flex items-center justify-between">
+            <div class="flex flex-row gap-4">
+                <div class="avatar">
+                    <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
+                        <img src="https://i.pinimg.com/736x/4a/32/dc/4a32dc90de96d69cea42a1d6280e3598.jpg"
+                            class="object-cover" />
+                    </div>
+                </div>
+                <div>
+                    <h2>Pralove</h2>
+                    <p class="flex flex-row items-center gap-1">
+                        <i class="fa-regular fa-message fa-xs text-blue-500"></i>
+                        <span class="text-xs text-gray-400">Recieved</span>
+                        <span class="size-1 rounded-full bg-gray-300">
+                        </span>
+                        <span class="text-xs text-gray-400">1m</span>
+                    </p>
+                </div>
+            </div>
+            <div>
+                <i class="fa-solid fa-camera fa-lg text-gray-500"></i>
+            </div>
+        </li>
+        <li class="flex items-center justify-between">
+            <div class="flex flex-row gap-4">
+                <div class="avatar">
+                    <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
+                        <img src="https://img.daisyui.com/images/profile/demo/yellingwoman@192.webp"
+                            class="object-cover" />
+                    </div>
+                </div>
+                <div>
+                    <h2>Rishav</h2>
+                    <p class="flex flex-row items-center gap-1">
+                        <i class="fa-regular fa-message fa-xs text-blue-500"></i>
+                        <span class="text-xs text-gray-400">Recieved</span>
+                        <span class="size-1 rounded-full bg-gray-300">
+                        </span>
+                        <span class="text-xs text-gray-400">1m</span>
+                    </p>
+                </div>
+            </div>
+            <div>
+                <i class="fa-solid fa-camera fa-lg text-gray-500"></i>
+            </div>
+        </li>
+        <li class="flex items-center justify-between">
+            <div class="flex flex-row gap-4">
+                <div class="avatar">
+                    <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSiKzJ2JIrFaA7L1mtyLGHgUBd5LNcfcH_2e0DZV-F_3fKf9iYsx3Yg552g&s=10"
+                            class="object-cover" />
+                    </div>
+                </div>
+                <div>
+                    <h2>Nishant</h2>
+                    <p class="flex flex-row items-center gap-1">
+                        <i class="fa-regular fa-message fa-xs text-blue-500"></i>
+                        <span class="text-xs text-gray-400">Recieved</span>
+                        <span class="size-1 rounded-full bg-gray-300">
+                        </span>
+                        <span class="text-xs text-gray-400">1m</span>
+                    </p>
+                </div>
+            </div>
+            <div>
+                <i class="fa-solid fa-camera fa-lg text-gray-500"></i>
+            </div>
+        </li>
+        <li class="flex items-center justify-between">
+            <div class="flex flex-row gap-4">
+                <div class="avatar">
+                    <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
+                        <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="object-cover" />
+                    </div>
+                </div>
+                <div>
+                    <h2>Pralove</h2>
+                    <p class="flex flex-row items-center gap-1">
+                        <i class="fa-regular fa-message fa-xs text-blue-500"></i>
+                        <span class="text-xs text-gray-400">Recieved</span>
+                        <span class="size-1 rounded-full bg-gray-300">
+                        </span>
+                        <span class="text-xs text-gray-400">1m</span>
+                    </p>
+                </div>
+            </div>
+            <div>
+                <i class="fa-solid fa-camera fa-lg text-gray-500"></i>
+            </div>
+        </li>
+    </ul>
+</main>
+{% endblock %}
