@@ -27,7 +27,11 @@
 
     <div id="messages" class="flex-1 min-h-0 overflow-y-auto px-4 py-6 space-y-3">
       {% for message in messages %}
-        <div class="chat {% if message.sender == request.user %}chat-end{% else %}chat-start{% endif %}">
+        <div class="chat {% if message.sender == request.user %}
+            chat-end
+          {% else %}
+            chat-start
+          {% endif %}">
           <div class="chat-header">
             {% if message.sender == request.user %}
               You
@@ -44,12 +48,14 @@
 
     <!-- Input -->
 
-    <div class="flex-shrink-0 p-4 border-t">
-      <div class="flex items-center gap-3">
+    <div class="flex items-center justify-between p-4 shadow-sm flex-shrink-0 ">
+      <a href="microsoft.windows.camera:" class="p-4 bg-gray-100 rounded-full flex items-center justify-center mr-1 ">
+        <i class="fa-solid fa-camera"></i>
+      </a>
+      <div class="flex items-center gap-2">
         <input id="message-input" type="text" placeholder="Send chat..." class="w-full rounded-full bg-gray-100 px-4 py-2 focus:outline-none" />
-
-        <button id="send-btn" class="bg-yellow-400 rounded-full w-10 h-10 flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button>
       </div>
+      <button id="send-btn" class="bg-blue-400 rounded-full w-10 h-10 flex items-center justify-center"><i class="fa-solid fa-paper-plane text-white"></i></button>
     </div>
   </div>
 
@@ -105,26 +111,26 @@
     function addMessage(username, message, timestamp, isOwnMessage) {
       const messageWrapper = document.createElement('div')
       messageWrapper.className = `chat ${isOwnMessage ? 'chat-end' : 'chat-start'}`
-
+    
       const header = document.createElement('div')
       header.className = 'chat-header'
       header.append(document.createTextNode(isOwnMessage ? 'You ' : `${username} `))
-
+    
       const time = document.createElement('time')
       time.className = 'text-xs opacity-50'
       time.textContent = timestamp
       header.append(time)
-
+    
       const bubble = document.createElement('div')
       bubble.className = 'chat-bubble'
       bubble.textContent = message
-
+    
       messageWrapper.append(header, bubble)
       messages.append(messageWrapper)
     
       messages.scrollTop = messages.scrollHeight
     }
-
+    
     messages.scrollTop = messages.scrollHeight
   </script>
 {% endblock %}
