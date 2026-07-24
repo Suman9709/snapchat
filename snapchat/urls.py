@@ -11,5 +11,5 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('search/', views.search_view, name='search'),
     path('send_invite/<int:id>/', views.send_invite, name='send-invite'),
-    path('/chat/<int:id>/', views.chat, name='chat'),
+    path('chat/<int:id>/', views.chat, name='chat'),
 ]

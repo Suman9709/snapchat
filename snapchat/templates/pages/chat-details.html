@@ -2,128 +2,129 @@
 
 {% block main %}
   <div class="h-full flex flex-col overflow-hidden">
+    <!-- Header -->
     <div class="pt-6 px-5 shadow-sm flex items-center justify-between pb-2 flex-shrink-0">
       <div class="flex items-center gap-3">
         <a href="{% url 'home' %}" class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fa-solid fa-chevron-left"></i></a>
 
-        <div class="flex flex-col">
-          <div class="flex gap-2 items-center">
-            <div class="avatar">
-              <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
-                <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="object-cover" />
-              </div>
+        <div class="flex items-center gap-2">
+          <div class="avatar">
+            <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
+              <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="object-cover" />
             </div>
-            <div class="flex flex-col">
-              <h2 class="text-lg font-semibold">{{ friend.username }}</h2>
-              <p class="text-xs text-gray-400">Active 1m ago</p>
-            </div>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-semibold">{{ friend.username }}</h2>
+
+            <p class="text-xs text-gray-400">Active 1m ago</p>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="flex-1 min-h-0 overflow-y-auto px-4 py-6 space-y-4">
-      <div class="chat chat-start">
-        <div class="chat-image avatar">
-          <div class="w-10 rounded-full">
-            <img alt="Tailwind CSS chat bubble component" src="https://img.daisyui.com/images/profile/demo/kenobee@192.webp" />
-          </div>
-        </div>
-        <div class="chat-header">
-          Obi-Wan Kenobi
-          <time class="text-xs opacity-50">12:45</time>
-        </div>
-        <div class="chat-bubble">You were the Chosen One!</div>
-        <div class="chat-footer opacity-50">Delivered</div>
-      </div>
-      <div class="chat chat-end">
-        <div class="chat-image avatar">
-          <div class="w-10 rounded-full">
-            <img alt="Tailwind CSS chat bubble component" src="https://img.daisyui.com/images/profile/demo/anakeen@192.webp" />
-          </div>
-        </div>
-        <div class="chat-header">
-          Anakin
-          <time class="text-xs opacity-50">12:46</time>
-        </div>
-        <div class="chat-bubble">I hate you!</div>
-        <div class="chat-footer opacity-50">Seen at 12:46</div>
-      </div>
+    <!-- Messages -->
 
-      <div class="chat chat-end">
-        <div class="chat-image avatar">
-          <div class="w-10 rounded-full">
-            <img alt="Tailwind CSS chat bubble component" src="https://img.daisyui.com/images/profile/demo/anakeen@192.webp" />
+    <div id="messages" class="flex-1 min-h-0 overflow-y-auto px-4 py-6 space-y-3">
+      {% for message in messages %}
+        <div class="chat {% if message.sender == request.user %}chat-end{% else %}chat-start{% endif %}">
+          <div class="chat-header">
+            {% if message.sender == request.user %}
+              You
+            {% else %}
+              {{ message.sender.username }}
+            {% endif %}
+            <time class="text-xs opacity-50">{{ message.created_at|date:'H:i' }}</time>
           </div>
+
+          <div class="chat-bubble">{{ message.message }}</div>
         </div>
-        <div class="chat-header">
-          Anakin
-          <time class="text-xs opacity-50">12:46</time>
-        </div>
-        <div class="chat-bubble">I hate you!</div>
-        <div class="chat-footer opacity-50">Seen at 12:46</div>
-      </div>
-      <div class="chat chat-start">
-        <div class="chat-image avatar">
-          <div class="w-10 rounded-full">
-            <img alt="Tailwind CSS chat bubble component" src="https://img.daisyui.com/images/profile/demo/kenobee@192.webp" />
-          </div>
-        </div>
-        <div class="chat-header">
-          Obi-Wan Kenobi
-          <time class="text-xs opacity-50">12:45</time>
-        </div>
-        <div class="chat-bubble">You were the Chosen One!</div>
-        <div class="chat-footer opacity-50">Delivered</div>
-      </div>
-      <div class="chat chat-end">
-        <div class="chat-image avatar">
-          <div class="w-10 rounded-full">
-            <img alt="Tailwind CSS chat bubble component" src="https://img.daisyui.com/images/profile/demo/anakeen@192.webp" />
-          </div>
-        </div>
-        <div class="chat-header">
-          Anakin
-          <time class="text-xs opacity-50">12:46</time>
-        </div>
-        <div class="chat-bubble">I hate you!</div>
-        <div class="chat-footer opacity-50">Seen at 12:46</div>
-      </div>
-      <div class="chat chat-start">
-        <div class="chat-image avatar">
-          <div class="w-10 rounded-full">
-            <img alt="Tailwind CSS chat bubble component" src="https://img.daisyui.com/images/profile/demo/kenobee@192.webp" />
-          </div>
-        </div>
-        <div class="chat-header">
-          Obi-Wan Kenobi
-          <time class="text-xs opacity-50">12:45</time>
-        </div>
-        <div class="chat-bubble">You were the Chosen One!</div>
-        <div class="chat-footer opacity-50">Delivered</div>
-      </div>
-      <div class="chat chat-end">
-        <div class="chat-image avatar">
-          <div class="w-10 rounded-full">
-            <img alt="Tailwind CSS chat bubble component" src="https://img.daisyui.com/images/profile/demo/anakeen@192.webp" />
-          </div>
-        </div>
-        <div class="chat-header">
-          Anakin
-          <time class="text-xs opacity-50">12:46</time>
-        </div>
-        <div class="chat-bubble">I hate you!</div>
-        <div class="chat-footer opacity-50">Seen at 12:46</div>
-      </div>
+      {% endfor %}
     </div>
 
-    <div class="flex-shrink-0 p-4">
-      <div class="flex items-center w-full gap-3">
-        <button class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fa-solid fa-camera"></i></button>
+    <!-- Input -->
 
-        <input type="text" placeholder="Send chat" class="rounded-full w-full p-2 bg-gray-100 focus:outline-none" />
-        <button class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fa-solid fa-arrow-up"></i></button>
+    <div class="flex-shrink-0 p-4 border-t">
+      <div class="flex items-center gap-3">
+        <input id="message-input" type="text" placeholder="Send chat..." class="w-full rounded-full bg-gray-100 px-4 py-2 focus:outline-none" />
+
+        <button id="send-btn" class="bg-yellow-400 rounded-full w-10 h-10 flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button>
       </div>
     </div>
   </div>
+
+  <script>
+    const conversationId = '{{ conversation.id }}'
+    const currentUserId = Number('{{ request.user.id }}')
+    const messages = document.getElementById('messages')
+    
+    const socket = new WebSocket('ws://' + window.location.host + '/ws/chat/' + conversationId + '/')
+    
+    socket.onopen = function () {
+      console.log('WebSocket connected')
+    }
+    
+    socket.onerror = function (error) {
+      console.log('WebSocket error:', error)
+    }
+    
+    socket.onclose = function () {
+      console.log('WebSocket disconnected')
+    }
+    
+    socket.onmessage = function (e) {
+      console.log('Raw message:', e.data)
+    
+      const data = JSON.parse(e.data)
+    
+      console.log('Received:', data)
+    
+      addMessage(data.username, data.message, data.timestamp, data.sender_id === currentUserId)
+    }
+    
+    function sendMessage() {
+      const input = document.getElementById('message-input')
+    
+      const message = input.value
+    
+      if (message.trim() === '') {
+        return
+      }
+    
+      socket.send(
+        JSON.stringify({
+          message: message
+        })
+      )
+    
+      input.value = ''
+    }
+    
+    document.getElementById('send-btn').addEventListener('click', sendMessage)
+    
+    function addMessage(username, message, timestamp, isOwnMessage) {
+      const messageWrapper = document.createElement('div')
+      messageWrapper.className = `chat ${isOwnMessage ? 'chat-end' : 'chat-start'}`
+
+      const header = document.createElement('div')
+      header.className = 'chat-header'
+      header.append(document.createTextNode(isOwnMessage ? 'You ' : `${username} `))
+
+      const time = document.createElement('time')
+      time.className = 'text-xs opacity-50'
+      time.textContent = timestamp
+      header.append(time)
+
+      const bubble = document.createElement('div')
+      bubble.className = 'chat-bubble'
+      bubble.textContent = message
+
+      messageWrapper.append(header, bubble)
+      messages.append(messageWrapper)
+    
+      messages.scrollTop = messages.scrollHeight
+    }
+
+    messages.scrollTop = messages.scrollHeight
+  </script>
 {% endblock %}

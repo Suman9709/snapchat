@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth import login, logout, get_user_model
 
 from django.contrib.auth.decorators import login_required
-from .models import FriendRequest
+from .models import FriendRequest, Conversation, Message
 from django.db.models import Q
 
 # Create your views here.
@@ -52,13 +52,28 @@ def home(request):
             friends.append(friend.from_user)
     # all friend
     
-    return render(request, 'pages/chat.html', {'friends': friends})
+    return render(request, 'pages/chat.html', {'friends': friends, 'room_name': "general"})
+
+
 
 @login_required
 def chat(request, id):
     # Implementation for the chat view
     friend = get_object_or_404(get_user_model(), pk=id)
-    return render(request, 'pages/chat-details.html', {'friend': friend})
+    
+    conversation = Conversation.objects.filter(participants = request.user).filter(participants = friend).first()
+
+    if not conversation:
+        conversation = Conversation.objects.create()
+        conversation.participants.add(request.user, friend)
+
+    messages = conversation.messages.select_related('sender').order_by('created_at')
+
+    return render(request, 'pages/chat-details.html', {
+        'friend': friend,
+        'conversation': conversation,
+        'messages': messages,
+    })
 
 @login_required
 def search_view(request):
