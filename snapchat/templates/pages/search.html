@@ -1,109 +1,58 @@
 {% extends 'index.html' %}
 
 {% block main %}
-  <div class="mt-6 px-5">
+  <div class="pt-6 px-5 shadow-sm flex items-center justify-between pb-2">
     <div class="flex items-center gap-3">
-      <a href="{% url 'home' %}" class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fa-solid fa-chevron-down"></i></a>
+      <a href="{% url 'home' %}" class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fa-solid fa-chevron-left"></i></a>
 
       <div class="relative flex-1">
-        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <form action="{% url 'search' %}" method="get" onchange="this.submit()">
+          <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
 
-        <input type="text" placeholder="Search friends..." class="w-full h-10 pl-11 pr-4 rounded-full bg-gray-100 focus:outline-none " />
+          <input type="text" name="username" placeholder="Search friends..." class="w-full h-10 pl-11 pr-4 rounded-full bg-gray-100 focus:outline-none" />
+        </form>
       </div>
     </div>
   </div>
 
   <main class="mt-8 px-4">
     <ul class="space-y-6">
-      <li class="flex items-center justify-between">
-        <div class="flex flex-row gap-4">
-          <div class="avatar">
-            <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
-              <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="object-cover" />
+      {% for user in users %}
+        <li class="flex items-center justify-between">
+          <div class="flex flex-row gap-4">
+            <div class="avatar">
+              <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
+                <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="object-cover" />
+              </div>
+            </div>
+            <div>
+              <h2>{{ user.username }}</h2>
+              <p class="flex flex-row items-center">
+                {% comment %} <i class="fa-regular fa-message fa-xs text-blue-500"></i> {% endcomment %}
+                <span class="text-xs text-gray-400">@{{ user.username }}</span>
+              </p>
             </div>
           </div>
           <div>
-            <h2>Pralove</h2>
-            <p class="flex flex-row items-center">
-              {% comment %} <i class="fa-regular fa-message fa-xs text-blue-500"></i> {% endcomment %}
-              <span class="text-xs text-gray-400">@prolove</span>
-            </p>
-          </div>
-        </div>
-        <div>
-          <button class="btn bg-yellow-300 text-[#181600] border-[#f1d800] rounded-2xl btn-sm">
-            <i class="fa-solid fa-user-plus"></i>
-            Add
-          </button>
-        </div>
-      </li>
+            {% if user.id in pending %}
+              <button disabled class="btn bg-gray-300 text-gray-500 rounded-2xl btn-sm">
+                <i class="fa-solid fa-user-plus"></i>
+                Pending
+              </button>
+            {% elif user.id not in friends %}
+              <form action="{% url 'send-invite' id=user.id %}" method="post" onclick="this.submit()" class="btn bg-yellow-300 text-[#181600] rounded-2xl btn-sm">
+                {% csrf_token %}
+                <i class="fa-solid fa-user-plus"></i>
+                Add
+              </form>
+            {% else %}
 
-      <li class="flex items-center justify-between">
-        <div class="flex flex-row gap-4">
-          <div class="avatar">
-            <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
-              <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="object-cover" />
-            </div>
+            {% endif %}
           </div>
-          <div>
-            <h2>Nishant</h2>
-            <p class="flex flex-row items-center">
-              {% comment %} <i class="fa-regular fa-message fa-xs text-blue-500"></i> {% endcomment %}
-              <span class="text-xs text-gray-400">@nishant</span>
-            </p>
-          </div>
-        </div>
-        <div>
-          <button class="btn bg-[#FEE502] text-[#181600] border-[#f1d800] rounded-2xl btn-sm">
-            <i class="fa-solid fa-user-plus"></i>
-            Add
-          </button>
-        </div>
-      </li>
-      <li class="flex items-center justify-between">
-        <div class="flex flex-row gap-4">
-          <div class="avatar">
-            <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
-              <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="object-cover" />
-            </div>
-          </div>
-          <div>
-            <h2>Nishant</h2>
-            <p class="flex flex-row items-center">
-              {% comment %} <i class="fa-regular fa-message fa-xs text-blue-500"></i> {% endcomment %}
-              <span class="text-xs text-gray-400">@nishant</span>
-            </p>
-          </div>
-        </div>
-        <div>
-          <button class="btn bg-[#FEE502] text-[#181600] border-[#f1d800] rounded-2xl btn-sm">
-            <i class="fa-solid fa-user-plus"></i>
-            Add
-          </button>
-        </div>
-      </li>
-      <li class="flex items-center justify-between">
-        <div class="flex flex-row gap-4">
-          <div class="avatar">
-            <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
-              <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="object-cover" />
-            </div>
-          </div>
-          <div>
-            <h2>Rahul</h2>
-            <p class="flex flex-row items-center">
-              {% comment %} <i class="fa-regular fa-message fa-xs text-blue-500"></i> {% endcomment %}
-              <span class="text-xs text-gray-400">@rahul</span>
-            </p>
-          </div>
-        </div>
-        <div>
-          <button class="btn bg-[#FEE502] text-[#181600] border-[#f1d800] rounded-2xl btn-sm">
-            <i class="fa-solid fa-user-plus"></i>
-            Add
-          </button>
-        </div>
-      </li>
+        </li>
+      {% empty %}
+        <p class="text-center text-gray-400 text-xs">No users found for "{{ search }}"</p>
+      {% endfor %}
     </ul>
   </main>
 {% endblock %}

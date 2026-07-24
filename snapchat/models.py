@@ -20,3 +20,4 @@ class FriendRequest(models.Model):
     
     def __str__(self):
         return f"FriendRequest(from={self.from_user.username}, to={self.to_user.username}, status={self.status})"
+    
