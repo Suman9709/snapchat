@@ -39,3 +39,7 @@ def logout_view(request):
 @login_required
 def home(request):
     return render(request, 'pages/chat.html')
+
+@login_required
+def search_view(request):
+    return render(request, 'pages/search.html')
