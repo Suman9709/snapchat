@@ -1,20 +1,20 @@
-    <div class="dock absolute bottom-0 left-0 right-0 z-20 bg-neutral text-neutral-content">
-            <button>
-                <i class="fa-solid fa-location-dot"></i>
-                <span class="dock-label">Map</span>
-            </button>
+<div class="dock absolute bottom-0 left-0 right-0 z-20 bg-neutral text-neutral-content">
+  <button>
+    <i class="fa-solid fa-location-dot"></i>
+    <span class="dock-label">Map</span>
+  </button>
 
-            <button class="dock-active">
-                <i class="fa-solid fa-message"></i>
-                <span class="dock-label">Chat</span>
-            </button>
+  <button class="dock-active">
+    <i class="fa-solid fa-message"></i>
+    <span class="dock-label">Chat</span>
+  </button>
 
-            <button>
-                <i class="fa-solid fa-camera"></i>
-                <span class="dock-label">Camera</span>
-            </button>
-            <button>
-                <i class="fa-solid fa-user-group"></i>
-                <span class="dock-label">Stories</span>
-            </button>
-        </div>
+  <a href="{% url 'camera' %}">
+    <i class="fa-solid fa-camera"></i>
+    <span class="dock-label">Camera</span>
+  </a>
+  <button>
+    <i class="fa-solid fa-user-group"></i>
+    <span class="dock-label">Stories</span>
+  </button>
+</div>

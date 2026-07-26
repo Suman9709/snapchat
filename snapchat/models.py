@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 # Create your models here.
 class SnapUser(AbstractUser):
     profile_pic = models.ImageField(upload_to='profile_pics', blank=True, null=True)
+    bio = models.CharField(max_length=256, blank=True, null=True)
 
 class FriendRequest(models.Model):
     class StatusChoices(models.TextChoices):
@@ -52,4 +53,20 @@ class Message(models.Model):
     def __str__(self):
         return f"Message(from={self.sender.username}, message={self.message[:20]}...)"
     
+class Snap(models.Model):
+    sender = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='sent_snaps')
+    image = models.ImageField(upload_to='snaps/')
+    caption = models.CharField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     
+    
+    def __str__(self):
+        return f"{self.sender.username}'s snap"
+class SnapReceiver(models.Model):
+    snap = models.ForeignKey(Snap, on_delete=models.CASCADE, related_name='receiver')
+    receiver = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='received_snaps')
+    opend = models.BooleanField(default=False)
+    opened_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.receiver.username} received {self.snap.id}"

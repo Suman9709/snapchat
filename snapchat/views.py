@@ -7,11 +7,13 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib.auth import login, logout, get_user_model
 
 from django.contrib.auth.decorators import login_required
-from .models import FriendRequest, Conversation, Message
+from .models import FriendRequest, Conversation, Message, Snap, SnapReceiver
 from django.db.models import Q
 from django.http import JsonResponse
 from .utils import are_friends
-from .models import SnapUser
+from django.db import models, transaction
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 # Create your views here.
 
@@ -234,6 +236,136 @@ def accept_request(request, id):
 @require_http_methods(['POST', 'GET'])
 @login_required
 def user_profile(request):
-    profile = request.user
     # profile = SnapUser.objects.get(id = request.user.id)
-    return render(request, 'pages/profile.html', {'user':profile})
+    user = request.user
+    snap_count = Message.objects.filter(sender = user, image__isnull=False).count()
+    
+    friend_count = FriendRequest.objects.filter(status=FriendRequest.StatusChoices.ACCEPTED).filter(models.Q(from_user = user) | Q(to_user = user)).count()
+    
+    return render(request, 'pages/profile.html', {'user':user, 'snap_count':snap_count,'friend_count':friend_count})
+
+
+
+@login_required
+def edit_user_profile(request):
+    return render(request, 'pages/profile-edit.html', {"user":request.user})
+
+@require_http_methods(['POST'])
+@login_required
+def update_user_profile(request):
+    user = request.user
+    user.email = request.POST.get("email")
+    user.bio = request.POST.get('bio')
+    profile_pic = request.FILES.get('profile_pic')
+
+    if(profile_pic):
+        user.profile_pic = profile_pic
+        
+    user.save()
+    
+    return redirect('profile')
+
+
+@ensure_csrf_cookie
+@login_required
+def camera_view(request, id=None):
+    friend_requests = FriendRequest.objects.filter(
+        status=FriendRequest.StatusChoices.ACCEPTED
+    ).filter(
+        models.Q(from_user=request.user) | models.Q(to_user=request.user)
+    ).select_related('from_user', 'to_user')
+
+    friends = []
+    for friend_request in friend_requests:
+        if friend_request.from_user == request.user:
+            friends.append(friend_request.to_user)
+        else:
+            friends.append(friend_request.from_user)
+
+    selected_friend = next((friend for friend in friends if friend.id == id), None)
+
+    if id and not selected_friend:
+        return redirect('home')
+
+    return render(request, 'pages/camera-v2.html', {
+        'friends': friends,
+        'selected_friend_id': selected_friend.id if selected_friend else None,
+        'direct_friend': selected_friend,
+        'is_direct_snap': selected_friend is not None,
+    })
+    
+@require_http_methods(['POST'])
+@login_required
+def send_snap(request):
+    image = request.FILES.get('image')
+    receiver_ids = request.POST.getlist('receivers')
+    caption = request.POST.get('caption', '').strip()
+
+    if not image:
+        return JsonResponse({"error": "image not found"}, status=400)
+
+    if not receiver_ids:
+        return JsonResponse({"error": "select at least one friend"}, status=400)
+
+    receivers = get_user_model().objects.filter(id__in=receiver_ids).exclude(id=request.user.id)
+    valid_receivers = [
+        receiver for receiver in receivers
+        if are_friends(request.user, receiver)
+    ]
+
+    if not valid_receivers:
+        return JsonResponse({"error": "no valid friends selected"}, status=400)
+
+    broadcast_messages = []
+
+    with transaction.atomic():
+        snap = Snap.objects.create(
+            sender=request.user,
+            image=image,
+            caption=caption,
+        )
+
+        SnapReceiver.objects.bulk_create([
+            SnapReceiver(snap=snap, receiver=receiver)
+            for receiver in valid_receivers
+        ])
+
+        for receiver in valid_receivers:
+            conversation = (
+                Conversation.objects
+                .filter(participants=request.user)
+                .filter(participants=receiver)
+                .first()
+            )
+
+            if not conversation:
+                conversation = Conversation.objects.create()
+                conversation.participants.add(request.user, receiver)
+
+            message = Message.objects.create(
+                conversation=conversation,
+                sender=request.user,
+                message=caption,
+                image=snap.image.name,
+            )
+            broadcast_messages.append((conversation.id, message))
+
+    channel_layer = get_channel_layer()
+    if channel_layer:
+        for conversation_id, message in broadcast_messages:
+            async_to_sync(channel_layer.group_send)(
+                f'chat_{conversation_id}',
+                {
+                    "type": "chat_message",
+                    "message": message.message,
+                    "image": message.image.url if message.image else None,
+                    "username": request.user.username,
+                    "sender_id": request.user.id,
+                    "timestamp": message.created_at.strftime("%H:%M"),
+                },
+            )
+    
+    return JsonResponse({
+        "message": "snap sent",
+        "receiver_count": len(valid_receivers),
+    })
