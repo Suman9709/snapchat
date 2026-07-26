@@ -1,83 +1,174 @@
 {% extends 'index.html' %}
+{% load static %}
+
 {% block main %}
-  <div class="flex h-full min-h-0 flex-col overflow-hidden">
+<div class="flex h-full min-h-0 flex-col overflow-hidden">
+
+    <!-- Header -->
     <header class="flex flex-shrink-0 items-center justify-between px-4 pt-6 pb-3 shadow-xs">
-      <div class="flex flex-row gap-3 justify-start items-center">
-        <a href="{% url 'profile' %}" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2"><i class="fa-solid fa-user text-yellow-300"></i></a>
-        <a href="{% url 'search' %}" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2"><i class="fa-solid fa-magnifying-glass"></i></a>
-      </div>
 
-      <h1 class="text-xl font-semibold">Chat</h1>
+        <div class="flex flex-row gap-3 items-center">
+            <a href="{% url 'profile' %}"
+               class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
+                <i class="fa-solid fa-user text-yellow-300"></i>
+            </a>
 
-      <div class="flex flex-row gap-3 justify-end items-center">
-        <div class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
-          <i class="fa-regular fa-bell"></i>
+            <a href="{% url 'search' %}"
+               class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </a>
         </div>
-        <a href="{% url 'friend_request' %}" class="size-[32px] bg-yellow-300 flex justify-center items-center rounded-full p-2"><i class="fa-solid fa-user-plus"></i></a>
-        <div class="dropdown dropdown-end">
-          <!-- Button -->
-          <div tabindex="0" role="button" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2 cursor-pointer">
-            <i class="fa-solid fa-ellipsis fa-lg"></i>
-          </div>
 
-          <!-- Dropdown Menu -->
-          <ul tabindex="0" class="dropdown-content menu bg-white rounded-xl shadow-lg w-40 mt-2 p-2 z-[50]">
-            <li>
-              <a href="{% url 'profile' %}">
-                <i class="fa-solid fa-user"></i>
-                Profile
-              </a>
-            </li>
+        <h1 class="text-xl font-semibold">Chat</h1>
 
-            {% comment %} <li>
-              <a href="#">
-                <i class="fa-solid fa-gear"></i>
-                Settings
-              </a>
-            </li> {% endcomment %}
+        <div class="flex flex-row gap-3 items-center">
 
-            <li>
-              <form action="{% url 'logout' %}" method="POST">
-                {% csrf_token %}
+            <div class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
+                <i class="fa-regular fa-bell"></i>
+            </div>
 
-                <button type="submit" class="text-red-500 flex items-center gap-2 w-full">
-                  <i class="fa-solid fa-right-from-bracket"></i>
+            <a href="{% url 'friend_request' %}"
+               class="size-[32px] bg-yellow-300 flex justify-center items-center rounded-full p-2">
+                <i class="fa-solid fa-user-plus"></i>
+            </a>
 
-                  Logout
-                </button>
-              </form>
-            </li>
-          </ul>
+            <div class="dropdown dropdown-end">
+
+                <div tabindex="0"
+                     role="button"
+                     class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2 cursor-pointer">
+                    <i class="fa-solid fa-ellipsis fa-lg"></i>
+                </div>
+
+                <ul tabindex="0"
+                    class="dropdown-content menu bg-white rounded-xl shadow-lg w-40 mt-2 p-2 z-[50]">
+
+                    <li>
+                        <a href="{% url 'profile' %}">
+                            <i class="fa-solid fa-user"></i>
+                            Profile
+                        </a>
+                    </li>
+
+                    <li>
+                        <form action="{% url 'logout' %}" method="POST">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="text-red-500 flex items-center gap-2 w-full">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                                Logout
+                            </button>
+                        </form>
+                    </li>
+
+                </ul>
+
+            </div>
+
         </div>
-      </div>
+
     </header>
 
-    <main class="flex-1 min-h-0 overflow-y-auto px-4 py-6 pb-24">
-      <ul class="space-y-6">
-        {% for friend in friends %}
-          <li class="flex items-center justify-between">
-            <div class="flex flex-row gap-4">
-              <div class="avatar">
-                <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
-                  <img src="https://i.pinimg.com/736x/4a/32/dc/4a32dc90de96d69cea42a1d6280e3598.jpg" class="object-cover" />
-                </div>
-              </div>
-              <a href="{% url 'chat' id=friend.id %}" class="flex flex-col">
-                <h2>{{ friend.username }}</h2>
-                <p class="flex flex-row items-center gap-1">
-                  <i class="fa-regular fa-message fa-xs text-blue-500"></i>
-                  <span class="text-xs text-gray-400">Recieved</span>
-                  <span class="size-1 rounded-full bg-gray-300"></span>
-                  <span class="text-xs text-gray-400">1m</span>
-                </p>
-              </a>
-            </div>
-            <a href="{% url 'friend-camera' friend.id %}"><i class="fa-solid fa-camera fa-lg text-gray-500"></i></a>
-          </li>
-        {% endfor %}
-      </ul>
+    <!-- Chat List -->
+
+    <main class="flex-1 overflow-y-auto scrollbar-none px-4 py-6 pb-24">
+
+        <ul class="space-y-6">
+
+            {% for chat in chat_list %}
+
+                <li class="flex items-center justify-between">
+
+                    <div class="flex gap-4">
+
+                        <!-- Profile Picture -->
+
+                        <div class="avatar">
+
+                            <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
+
+                                {% if chat.friend.profile_pic %}
+                                    <img src="{{ chat.friend.profile_pic.url }}"
+                                         class="object-cover rounded-full">
+                                {% else %}
+                                    <img src="{% static 'images/default-avatar.png' %}"
+                                         class="object-cover rounded-full">
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                        <!-- Username + Last Message -->
+
+                        <a href="{% url 'chat' id=chat.friend.id %}"
+                           class="flex flex-col">
+
+                            <h2 class="font-semibold">
+                                {{ chat.friend.username }}
+                            </h2>
+
+                            {% if chat.last_message %}
+
+                                <p class="flex items-center gap-2 text-sm text-gray-500">
+
+                                    {% if chat.last_message.sender == request.user %}
+                                        {% comment %} <span class="text-blue-500">You:</span> {% endcomment %}
+                                    {% else %}
+                                        <span class="text-green-600">
+                                            {% comment %} {{ chat.last_message.sender.username }}: {% endcomment %}
+                                        </span>
+                                    {% endif %}
+
+                                    <span>
+                                        {{ chat.last_message.message|truncatechars:30 }}
+                                    </span>
+
+                                </p>
+
+                            {% else %}
+
+                                <p class="text-sm text-gray-400">
+                                    Start chatting...
+                                </p>
+
+                            {% endif %}
+
+                        </a>
+
+                    </div>
+
+                    <!-- Right Side -->
+
+                    <div class="flex flex-col items-end gap-2">
+
+                        {% if chat.last_message %}
+                            <span class="text-xs text-gray-400">
+                                {{ chat.last_message.created_at|timesince }} ago
+                            </span>
+                        {% endif %}
+
+                        <a href="{% url 'friend-camera' chat.friend.id %}">
+                            <i class="fa-solid fa-camera text-gray-500"></i>
+                        </a>
+
+                    </div>
+
+                </li>
+
+            {% empty %}
+
+                <li class="text-center text-gray-500 py-10">
+                    No conversations yet.
+                </li>
+
+            {% endfor %}
+
+        </ul>
+
     </main>
 
     {% include 'components/bottomnavbar.html' %}
-  </div>
+
+</div>
 {% endblock %}

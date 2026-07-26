@@ -16,7 +16,13 @@
         <!-- Avatar -->
         <div class="flex justify-center">
           <div class="ring-purple-600 w-28 h-28 rounded-full ring-4 ring-offset-4 overflow-hidden">
-            <img src="{{ user.profile_pic.url }}" class="w-full h-full object-cover object-top" />
+            {% load static %}
+
+            {% if user.profile_pic %}
+              <img src="{{ user.profile_pic.url }}" class="w-full h-full object-cover object-top" />
+            {% else %}
+              <img src="{% static 'images/default-avatar.png' %}" class="w-full h-full object-cover object-top" />
+            {% endif %}
           </div>
         </div>
         <!-- Username -->
@@ -31,12 +37,12 @@
 
         <div class="flex justify-center gap-10 mt-6">
           <div class="text-center">
-            <h3 class="text-xl font-bold">{{snap_count}}</h3>
+            <h3 class="text-xl font-bold">{{ snap_count }}</h3>
 
             <p class="text-xs text-gray-400">Snaps</p>
           </div>
           <div class="text-center">
-            <h3 class="text-xl font-bold">{{friend_count}}</h3>
+            <h3 class="text-xl font-bold">{{ friend_count }}</h3>
 
             <p class="text-xs text-gray-400">Friends</p>
           </div>

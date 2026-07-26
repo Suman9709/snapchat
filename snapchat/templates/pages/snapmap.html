@@ -1,0 +1,104 @@
+{% extends 'index.html' %}
+
+{% block main %}
+  <link href="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
+
+  <div class="relative w-full h-screen">
+    <!-- Map -->
+    <div id="map" class="w-full h-full"></div>
+
+    <!-- Back Button -->
+    <a href="{% url 'home' %}" class="absolute top-4 left-4 z-10 flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-lg text-gray-700 hover:bg-gray-100"><i class="fa-solid fa-chevron-left"></i></a>
+  </div>
+
+  <script>
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: {
+        version: 8,
+        sources: {
+          satellite: {
+            type: 'raster',
+            tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+            tileSize: 256
+          }
+        },
+        layers: [
+          {
+            id: 'satellite',
+            type: 'raster',
+            source: 'satellite'
+          }
+        ]
+      },
+      center: [77.5946, 12.9716],
+      zoom: 15
+    })
+    
+    let marker = null
+    
+    // Get CSRF token from cookie
+    function getCookie(name) {
+      let cookieValue = null
+    
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';')
+    
+        for (let cookie of cookies) {
+          cookie = cookie.trim()
+    
+          if (cookie.startsWith(name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
+            break
+          }
+        }
+      }
+    
+      return cookieValue
+    }
+    
+    const csrftoken = getCookie('csrftoken')
+    
+    navigator.geolocation.watchPosition(
+      function (position) {
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+    
+        if (marker === null) {
+          marker = new maplibregl.Marker({ color: 'red' }).setLngLat([lng, lat]).addTo(map)
+        } else {
+          marker.setLngLat([lng, lat])
+        }
+    
+        map.setCenter([lng, lat])
+    
+        fetch('/update-location/', {
+          method: 'POST',
+    
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+          },
+    
+          body: JSON.stringify({
+            latitude: lat,
+            longitude: lng
+          })
+        })
+          .then((response) => response.json())
+          .then((data) => console.log(data))
+          .catch((error) => console.error(error))
+      },
+    
+      function (error) {
+        console.error(error)
+      },
+    
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0
+      }
+    )
+  </script>
+{% endblock %}

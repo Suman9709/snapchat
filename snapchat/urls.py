@@ -16,6 +16,7 @@ urlpatterns = [
     
     path('camera/', views.camera_view, name='camera'),
     path('camera/<int:id>/', views.camera_view, name='friend-camera'),
+    path('snapmap/', views.snap_map, name = "snapmap"),
     
     path('search/', views.search_view, name='search'),
     

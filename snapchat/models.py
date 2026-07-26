@@ -31,6 +31,13 @@ class Conversation(models.Model):
    created_at = models.DateTimeField(auto_now_add=True)
    
    
+   
+   @property 
+   def last_message(self):
+       
+        return self.messages.order_by("-created_at").first()
+   
+   
    def __str__(self):
        user = ", ".join(
            user.username
@@ -62,6 +69,8 @@ class Snap(models.Model):
     
     def __str__(self):
         return f"{self.sender.username}'s snap"
+    
+    
 class SnapReceiver(models.Model):
     snap = models.ForeignKey(Snap, on_delete=models.CASCADE, related_name='receiver')
     receiver = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='received_snaps')

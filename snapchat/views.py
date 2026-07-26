@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from .models import FriendRequest, Conversation, Message, Snap, SnapReceiver
 from django.db.models import Q
 from django.http import JsonResponse
+import json
 from .utils import are_friends
 from django.db import models, transaction
 from asgiref.sync import async_to_sync
@@ -49,16 +50,40 @@ def home(request):
     friend_requests = FriendRequest.objects.filter(
         status=FriendRequest.StatusChoices.ACCEPTED
         ).filter(Q(from_user=request.user) | Q(to_user=request.user))
-    friends = []
+    chat_list = []
     
-    for friend in friend_requests:
-        if friend.from_user == request.user:
-            friends.append(friend.to_user)
+    for fr in friend_requests:
+        if fr.from_user == request.user:
+            friend = fr.to_user
         else:
-            friends.append(friend.from_user)
+            friend = fr.from_user
     # all friend
     
-    return render(request, 'pages/chat.html', {'friends': friends, 'room_name': "general"})
+        conversation = (
+            Conversation.objects.filter(participants = request.user).filter(participants = friend).first()
+        
+        )
+        last_message = None
+        if conversation:
+            last_message = (
+                conversation.messages.order_by("-created_at").first()
+            )
+        chat_list.append({
+                "friend": friend,
+                "conversation": conversation,
+                "last_message": last_message,
+            })
+    chat_list.sort(
+    key=lambda chat: (
+        chat["last_message"].created_at
+        if chat["last_message"]
+        else chat["conversation"].created_at
+        if chat["conversation"]
+        else request.user.date_joined
+    ),
+    reverse=True,
+)
+    return render(request, 'pages/chat.html', {'chat_list': chat_list, 'room_name': "general"})
 
 
 @login_required
@@ -369,3 +394,11 @@ def send_snap(request):
         "message": "snap sent",
         "receiver_count": len(valid_receivers),
     })
+    
+def snap_map(request):
+    return render(request, "pages/snapmap.html")
+
+
+def update_location(request):
+    data = json.loads(request.body)
+    return JsonResponse({"status": "success"})

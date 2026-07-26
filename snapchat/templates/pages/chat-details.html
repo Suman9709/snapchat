@@ -10,7 +10,13 @@
         <div class="flex items-center gap-2">
           <div class="avatar">
             <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
-              <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="object-cover" />
+              {% load static %}
+
+              {% if friend.profile_pic %}
+                <img src="{{ friend.profile_pic.url }}" class="object-cover" />
+              {% else %}
+                <img src="{% static 'media/profilr_pics/dhaval_shah.webp' %}" class="object-cover" />
+              {% endif %}
             </div>
           </div>
 
@@ -25,9 +31,17 @@
 
     <!-- Messages -->
 
-    <div id="messages" class="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
+    <div id="messages" class="flex-1 min-h-0 overflow-y-auto scrollbar-none px-4 py-4 space-y-3">
       {% for message in messages %}
-        <div class="chat {% if message.sender == request.user %}chat-end{% else %}chat-start{% endif %}">
+        <div class="chat {% if message.sender == request.user %}
+            
+            chat-end
+
+          {% else %}
+            
+            chat-start
+
+          {% endif %}">
           <!-- Header -->
           <div class="chat-header">
             {% if message.sender == request.user %}
