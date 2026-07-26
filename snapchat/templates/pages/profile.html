@@ -1,0 +1,86 @@
+{% extends 'index.html' %}
+
+{% block main %}
+  <div class="h-full min-h-0 flex flex-col overflow-hidden bg-gray-50">
+    <!-- Header -->
+    <div class="pt-6 px-5 pb-4 bg-white shadow-sm flex items-center gap-3 flex-shrink-0">
+      <a href="{% url 'home' %}" class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fa-solid fa-chevron-left"></i></a>
+
+      <h2 class="text-lg font-semibold">Profile</h2>
+    </div>
+
+    <!-- Profile Content -->
+    <div class="flex-1 overflow-y-auto px-5 py-8 scroll-hidden scrollbar-none">
+      <!-- Profile Card -->
+      <div class="bg-white rounded-3xl shadow-sm p-6 text-center">
+        <!-- Avatar -->
+        <div class="flex justify-center">
+          <div class="ring-purple-600 w-28 h-28 rounded-full ring-4 ring-offset-4 overflow-hidden">
+            <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="w-full h-full object-cover" />
+          </div>
+        </div>
+        <!-- Username -->
+
+        <h1 class="mt-5 text-2xl font-bold capitalize">{{ user.username }}</h1>
+        <p class="text-sm text-gray-400 mt-1">@{{ user.username }}</p>
+
+        <!-- Bio -->
+
+        <p class="mt-4 text-sm text-gray-500">Living life one snap at a time 📸</p>
+        <!-- Stats -->
+
+        <div class="flex justify-center gap-10 mt-6">
+          <div class="text-center">
+            <h3 class="text-xl font-bold">24</h3>
+
+            <p class="text-xs text-gray-400">Snaps</p>
+          </div>
+          <div class="text-center">
+            <h3 class="text-xl font-bold">120</h3>
+
+            <p class="text-xs text-gray-400">Friends</p>
+          </div>
+          <div class="text-center">
+            <h3 class="text-xl font-bold">5</h3>
+
+            <p class="text-xs text-gray-400">Stories</p>
+          </div>
+        </div>
+
+        <!-- Edit Button -->
+
+        <button class="mt-8 w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 py-3 rounded-full font-semibold transition">
+          <i class="fa-solid fa-pen mr-2"></i>
+          Edit Profile
+        </button>
+      </div>
+
+      <!-- Settings -->
+      <div class="mt-6 bg-white rounded-3xl shadow-sm overflow-hidden">
+        <a href="#" class="flex items-center justify-between px-5 py-4 border-b">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+              <i class="fa-solid fa-user text-purple-600"></i>
+            </div>
+
+            <span>Account Details</span>
+          </div>
+
+          <i class="fa-solid fa-chevron-right text-gray-400"></i>
+        </a>
+
+        <a href="{% url 'logout' %}" class="flex items-center justify-between px-5 py-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+              <i class="fa-solid fa-right-from-bracket text-red-600"></i>
+            </div>
+
+            <span class="text-red-500">Logout</span>
+          </div>
+
+          <i class="fa-solid fa-chevron-right text-gray-400"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,7 +1,11 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import  AbstractUser
+from django.contrib.auth import get_user_model
+
 
 # Create your models here.
+class SnapUser(AbstractUser):
+    profile_pic = models.ImageField(upload_to='profile_pics', blank=True, null=True)
 
 class FriendRequest(models.Model):
     class StatusChoices(models.TextChoices):
@@ -9,8 +13,8 @@ class FriendRequest(models.Model):
         ACCEPTED = 'ACCEPTED', 'Accepted'
         REJECTED = 'REJECTED', 'Rejected'
         
-    from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_requests')
-    to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_requests')
+    from_user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='sent_requests')
+    to_user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='received_requests')
     status = models.CharField(max_length=10, choices=StatusChoices.choices, default=StatusChoices.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -22,7 +26,7 @@ class FriendRequest(models.Model):
         return f"FriendRequest(from={self.from_user.username}, to={self.to_user.username}, status={self.status})"
 
 class Conversation(models.Model):
-   participants = models.ManyToManyField(User, related_name='conversations')
+   participants = models.ManyToManyField(get_user_model(), related_name='conversations')
    created_at = models.DateTimeField(auto_now_add=True)
    
    
@@ -37,9 +41,15 @@ class Conversation(models.Model):
 class Message(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
     
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
-    message = models.TextField()
+    sender = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='sent_messages')
+    message = models.TextField(blank=True)
+    image = models.ImageField(upload_to='snaps', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     seen = models.BooleanField(default=False)
+    
+    
+    
+    def __str__(self):
+        return f"Message(from={self.sender.username}, message={self.message[:20]}...)"
     
     

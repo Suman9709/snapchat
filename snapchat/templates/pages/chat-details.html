@@ -1,7 +1,7 @@
 {% extends 'index.html' %}
 
 {% block main %}
-  <div class="h-full flex flex-col overflow-hidden">
+  <div class="h-full min-h-0 flex flex-col overflow-hidden">
     <!-- Header -->
     <div class="pt-6 px-5 shadow-sm flex items-center justify-between pb-2 flex-shrink-0">
       <div class="flex items-center gap-3">
@@ -25,46 +25,82 @@
 
     <!-- Messages -->
 
-    <div id="messages" class="flex-1 min-h-0 overflow-y-auto px-4 py-6 space-y-3">
+    <div id="messages" class="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
       {% for message in messages %}
-        <div class="chat {% if message.sender == request.user %}
-            chat-end
-          {% else %}
-            chat-start
-          {% endif %}">
+        <div class="chat {% if message.sender == request.user %}chat-end{% else %}chat-start{% endif %}">
+          <!-- Header -->
           <div class="chat-header">
             {% if message.sender == request.user %}
               You
             {% else %}
               {{ message.sender.username }}
             {% endif %}
-            <time class="text-xs opacity-50">{{ message.created_at|date:'H:i' }}</time>
+
+            <time class="text-xs opacity-50 ml-2">{{ message.created_at|date:'H:i' }}</time>
           </div>
 
-          <div class="chat-bubble">{{ message.message }}</div>
+          <!-- Text only bubble -->
+
+          {% if message.message %}
+            <div class="chat-bubble">{{ message.message }}</div>
+          {% endif %}
+
+          {% if message.image %}
+            <img src="{{ message.image.url }}" class="rounded-lg max-w-48 mt-2 object-cover" />
+          {% endif %}
         </div>
       {% endfor %}
     </div>
 
     <!-- Input -->
+    {% csrf_token %}
+    <div id="image-container" class="hidden flex-shrink-0 items-center gap-2 border-t px-4 py-2">
+      <input type="file" id="image-input" accept="image/*" class="hidden" />
 
-    <div class="flex items-center justify-between p-4 shadow-sm flex-shrink-0 ">
-      <a href="microsoft.windows.camera:" class="p-4 bg-gray-100 rounded-full flex items-center justify-center mr-1 ">
-        <i class="fa-solid fa-camera"></i>
-      </a>
-      <div class="flex items-center gap-2">
+      <img id="image-preview" src="" alt="preview" class="w-12 h-12 object-cover rounded-md" />
+
+      <p id="image-path" class="min-w-0 flex-1 truncate text-xs text-gray-500"></p>
+    </div>
+
+    <div class="flex flex-shrink-0 items-center gap-3 p-4 shadow-sm">
+      <button id="camera_btn" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black"><i class="fa-solid fa-camera text-white text-lg"></i></button>
+      <div class="min-w-0 flex-1">
         <input id="message-input" type="text" placeholder="Send chat..." class="w-full rounded-full bg-gray-100 px-4 py-2 focus:outline-none" />
       </div>
-      <button id="send-btn" class="bg-blue-400 rounded-full w-10 h-10 flex items-center justify-center"><i class="fa-solid fa-paper-plane text-white"></i></button>
+      <button id="send-btn" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-400"><i class="fa-solid fa-paper-plane text-white"></i></button>
     </div>
   </div>
 
   <script>
+    const imageInput = document.getElementById('image-input')
+    const cameraBtn = document.getElementById('camera_btn')
+    const imagePath = document.getElementById('image-path')
+    const imageContainer = document.getElementById('image-container')
+    const imagePreview = document.getElementById('image-preview')
+    
+    cameraBtn.addEventListener('click', () => {
+      imageInput.click()
+    })
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files[0]
+      if (file) {
+        previewImage(file)
+        imageContainer.classList.remove('hidden')
+        imageContainer.classList.add('flex')
+      }
+    })
+    
+    function previewImage(file) {
+      imagePath.textContent = file.name
+      imagePreview.src = URL.createObjectURL(file)
+    }
+    
     const conversationId = '{{ conversation.id }}'
     const currentUserId = Number('{{ request.user.id }}')
     const messages = document.getElementById('messages')
     
-    const socket = new WebSocket('ws://' + window.location.host + '/ws/chat/' + conversationId + '/')
+    const socketProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+    const socket = new WebSocket(socketProtocol + '://' + window.location.host + '/ws/chat/' + conversationId + '/')
     
     socket.onopen = function () {
       console.log('WebSocket connected')
@@ -85,30 +121,74 @@
     
       console.log('Received:', data)
     
-      addMessage(data.username, data.message, data.timestamp, data.sender_id === currentUserId)
+      addMessage(data.username, data.message, data.timestamp, data.sender_id === currentUserId, data.image)
     }
     
-    function sendMessage() {
+    function getCSRFToken() {
+      const inputToken = document.querySelector('[name=csrfmiddlewaretoken]')
+      const metaToken = document.querySelector('meta[name="csrf-token"]')
+      return inputToken?.value || metaToken?.content || ''
+    }
+    async function uploadImage(message) {
+      const file = imageInput.files[0]
+    
+      if (!file) {
+        return null
+      }
+    
+      const formData = new FormData()
+    
+      formData.append('image', file)
+      formData.append('conversation', conversationId)
+      formData.append('message', message)
+    
+      const response = await fetch('/upload-snap/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': getCSRFToken()
+        },
+        body: formData
+      })
+    
+      if (!response.ok) {
+        throw new Error('Image upload failed')
+      }
+    
+      return await response.json()
+    }
+    
+    async function sendMessage() {
       const input = document.getElementById('message-input')
     
-      const message = input.value
+      const message = input.value.trim()
+      let imageData = null
     
-      if (message.trim() === '') {
+      if (imageInput.files.length > 0) {
+        imageData = await uploadImage(message)
+      }
+    
+      if (!message && !imageData) {
         return
       }
     
       socket.send(
         JSON.stringify({
-          message: message
+          message: imageData ? imageData.message : message,
+          image: imageData ? imageData.image : null
         })
       )
     
       input.value = ''
+      imageInput.value = ''
+      imagePreview.src = ''
+      imagePath.textContent = ''
+      imageContainer.classList.add('hidden')
+      imageContainer.classList.remove('flex')
     }
-    
     document.getElementById('send-btn').addEventListener('click', sendMessage)
     
-    function addMessage(username, message, timestamp, isOwnMessage) {
+    function addMessage(username, message, timestamp, isOwnMessage, image) {
       const messageWrapper = document.createElement('div')
       messageWrapper.className = `chat ${isOwnMessage ? 'chat-end' : 'chat-start'}`
     
@@ -121,16 +201,24 @@
       time.textContent = timestamp
       header.append(time)
     
-      const bubble = document.createElement('div')
-      bubble.className = 'chat-bubble'
-      bubble.textContent = message
+      if (message) {
+        const bubble = document.createElement('div')
+        bubble.className = 'chat-bubble'
+        bubble.textContent = message
+        messageWrapper.appendChild(bubble)
+      }
     
-      messageWrapper.append(header, bubble)
-      messages.append(messageWrapper)
+      if (image) {
+        const img = document.createElement('img')
+        img.src = image
+        img.className = 'rounded-lg max-w-48  object-cover'
+        messageWrapper.appendChild(img)
+      }
+    
+      messageWrapper.prepend(header)
+      messages.appendChild(messageWrapper)
     
       messages.scrollTop = messages.scrollHeight
     }
-    
-    messages.scrollTop = messages.scrollHeight
   </script>
 {% endblock %}

@@ -40,10 +40,12 @@
                 Pending
               </button>
             {% elif user.id not in friends %}
-              <form action="{% url 'send-invite' id=user.id %}" method="post" onclick="this.submit()" class="btn bg-yellow-300 text-[#181600] rounded-2xl btn-sm">
+              <form action="{% url 'send-invite' id=user.id %}" method="post">
                 {% csrf_token %}
-                <i class="fa-solid fa-user-plus"></i>
-                Add
+                <button type="submit" class="btn bg-yellow-300 text-[#181600] rounded-2xl btn-sm">
+                  <i class="fa-solid fa-user-plus"></i>
+                  Add
+                </button>
               </form>
             {% else %}
 

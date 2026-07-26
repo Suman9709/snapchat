@@ -1,52 +1,83 @@
 {% extends 'index.html' %}
 {% block main %}
-  <div class="dock shadow-xs px-4 absolute top-0 flex justify-between dock-lg">
-    <div class="flex flex-row gap-3 justify-start items-center">
-      <div class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
-        <i class="fa-solid fa-user text-yellow-300"></i>
+  <div class="flex h-full min-h-0 flex-col overflow-hidden">
+    <header class="flex flex-shrink-0 items-center justify-between px-4 pt-6 pb-3 shadow-xs">
+      <div class="flex flex-row gap-3 justify-start items-center">
+        <a href="{% url 'profile' %}" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2"><i class="fa-solid fa-user text-yellow-300"></i></a>
+        <a href="{% url 'search' %}" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2"><i class="fa-solid fa-magnifying-glass"></i></a>
       </div>
-      <a href="{% url 'search' %}" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2"><i class="fa-solid fa-magnifying-glass"></i></a>
-    </div>
-    <h1 class="text-xl font-semibold">Chat</h1>
-    <div class="flex flex-row gap-3 justify-end items-center">
-      <div class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
-        <i class="fa-regular fa-bell"></i>
-      </div>
-      <div class="size-[32px] bg-yellow-300 flex justify-center items-center rounded-full p-2">
-        <i class="fa-solid fa-user-plus"></i>
-      </div>
-      <div class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
-        <i class="fa-solid fa-ellipsis fa-lg"></i>
-      </div>
-    </div>
-  </div>
-  <main class="mt-24 px-4">
-    <ul class="space-y-6">
-      {% for friend in friends %}
-        <li class="flex items-center justify-between">
-          <div class="flex flex-row gap-4">
-            <div class="avatar">
-              <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
-                <img src="https://i.pinimg.com/736x/4a/32/dc/4a32dc90de96d69cea42a1d6280e3598.jpg" class="object-cover" />
-              </div>
-            </div>
-            <a href="{% url 'chat' id=friend.id %}" class="flex flex-col">
-              <h2>{{ friend.username }}</h2>
-              <p class="flex flex-row items-center gap-1">
-                <i class="fa-regular fa-message fa-xs text-blue-500"></i>
-                <span class="text-xs text-gray-400">Recieved</span>
-                <span class="size-1 rounded-full bg-gray-300"></span>
-                <span class="text-xs text-gray-400">1m</span>
-              </p>
-            </a>
-          </div>
-          <a href="microsoft.windows.camera:">
-            <i class="fa-solid fa-camera fa-lg text-gray-500"></i>
-          </a>
-        </li>
-      {% endfor %}
-    </ul>
-  </main>
 
-  {% include 'components/bottomnavbar.html' %}
+      <h1 class="text-xl font-semibold">Chat</h1>
+
+      <div class="flex flex-row gap-3 justify-end items-center">
+        <div class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
+          <i class="fa-regular fa-bell"></i>
+        </div>
+        <a href="{% url 'friend_request' %}" class="size-[32px] bg-yellow-300 flex justify-center items-center rounded-full p-2"><i class="fa-solid fa-user-plus"></i></a>
+        <div class="dropdown dropdown-end">
+          <!-- Button -->
+          <div tabindex="0" role="button" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2 cursor-pointer">
+            <i class="fa-solid fa-ellipsis fa-lg"></i>
+          </div>
+
+          <!-- Dropdown Menu -->
+          <ul tabindex="0" class="dropdown-content menu bg-white rounded-xl shadow-lg w-40 mt-2 p-2 z-[50]">
+            <li>
+              <a href="{% url 'profile' %}">
+                <i class="fa-solid fa-user"></i>
+                Profile
+              </a>
+            </li>
+
+            {% comment %} <li>
+              <a href="#">
+                <i class="fa-solid fa-gear"></i>
+                Settings
+              </a>
+            </li> {% endcomment %}
+
+            <li>
+              <form action="{% url 'logout' %}" method="POST">
+                {% csrf_token %}
+
+                <button type="submit" class="text-red-500 flex items-center gap-2 w-full">
+                  <i class="fa-solid fa-right-from-bracket"></i>
+
+                  Logout
+                </button>
+              </form>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 min-h-0 overflow-y-auto px-4 py-6 pb-24">
+      <ul class="space-y-6">
+        {% for friend in friends %}
+          <li class="flex items-center justify-between">
+            <div class="flex flex-row gap-4">
+              <div class="avatar">
+                <div class="ring-purple-600 w-10 h-10 rounded-full ring-2 ring-offset-2">
+                  <img src="https://i.pinimg.com/736x/4a/32/dc/4a32dc90de96d69cea42a1d6280e3598.jpg" class="object-cover" />
+                </div>
+              </div>
+              <a href="{% url 'chat' id=friend.id %}" class="flex flex-col">
+                <h2>{{ friend.username }}</h2>
+                <p class="flex flex-row items-center gap-1">
+                  <i class="fa-regular fa-message fa-xs text-blue-500"></i>
+                  <span class="text-xs text-gray-400">Recieved</span>
+                  <span class="size-1 rounded-full bg-gray-300"></span>
+                  <span class="text-xs text-gray-400">1m</span>
+                </p>
+              </a>
+            </div>
+            <a href="microsoft.windows.camera:"><i class="fa-solid fa-camera fa-lg text-gray-500"></i></a>
+          </li>
+        {% endfor %}
+      </ul>
+    </main>
+
+    {% include 'components/bottomnavbar.html' %}
+  </div>
 {% endblock %}
