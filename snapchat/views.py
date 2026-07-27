@@ -18,6 +18,7 @@ from channels.layers import get_channel_layer
 
 from django.utils import timezone
 from datetime import timedelta
+from .utils import update_snap_streak
 
 # Create your views here.
 
@@ -159,11 +160,14 @@ def upload_snap(request):
         
     )
     
+    if image:
+        update_snap_streak(conversation, request.user)
+    
     if conversation.mode== Conversation.Mode.AFTER_24HR:
         message.expires_at = timezone.now() + timedelta(hours=24)
         message.save()
         
-    conversation.save()
+    # conversation.save()
     
     return JsonResponse({
         'image':message.image.url,
@@ -209,7 +213,12 @@ def chat_close(request, id):
     return redirect('home')
     
 
-    
+# @login_required
+# @require_http_methods(['POST'])
+# def delete_conversation(request, id):
+#     conversation = get_object_or_404(Conversation, id=id, participants=request.user)
+#     conversation.delete()
+#     return redirect('home')
     
 # @require_http_methods(["POST"])
 # @login_required

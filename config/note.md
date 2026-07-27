@@ -30,7 +30,7 @@
 # screenshot capture notification
 # camera on ✅
 # profile✅
-# chat delete with in 2hrs
+# chat delete with in 2hrs✅
 
     
     

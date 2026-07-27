@@ -36,6 +36,8 @@ class Conversation(models.Model):
    participants = models.ManyToManyField(get_user_model(), related_name='conversations')
    mode = models.CharField(max_length=20, choices=Mode.choices, default=Mode.KEEP)
    streak = models.PositiveIntegerField(default=0, editable=False)
+   last_snap_date = models.DateField(null=True, blank=True)
+   last_snap_send = models.ForeignKey(get_user_model(), null=True, blank=True, on_delete=models.SET_NULL, related_name='last_snap_sent' )
    created_at = models.DateTimeField(auto_now_add=True)
    updated_at = models.DateTimeField(auto_now=True)
    
