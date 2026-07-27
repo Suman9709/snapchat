@@ -22,7 +22,13 @@ urlpatterns = [
     
     path('send_invite/<int:id>/', views.send_invite, name='send-invite'),
     path('chat/<int:id>/', views.chat, name='chat'),
+    path('chat-close/<int:id>/', views.chat_close, name='chat-close'),
     path('friend_request', views.get_all_friend_request, name ='friend_request' ),
+    
+    path('chat/<int:id>/settings/',views.chat_setting,name='chat-settings'),
+    path('chat/<int:id>/settings/update',views.update_chat_settings,name='update-chat-settings'),
+    
+    
   path(
     'accept-request/<int:id>/',
     views.accept_request,

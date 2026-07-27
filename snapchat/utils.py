@@ -1,4 +1,4 @@
-from .models import FriendRequest
+from .models import FriendRequest, Conversation
 from django.db.models import Q
 
 def are_friends(user1, user2):
@@ -11,3 +11,4 @@ def are_friends(user1, user2):
 
 def streak(user1, user2):
     pass
+    

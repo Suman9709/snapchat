@@ -3,6 +3,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from .models import Conversation, Message
 from django.utils import timezone
+from datetime import timedelta
 
 class ChatConsume(AsyncWebsocketConsumer):
     async def connect(self):
@@ -78,12 +79,17 @@ class ChatConsume(AsyncWebsocketConsumer):
     def save_message(self, message):
         conversation = Conversation.objects.get(id=self.conversation_id)
         
-        Message.objects.create(
+        chat_message = Message.objects.create(
             conversation=conversation,
             sender=self.scope['user'],
             message=message,
         
         )
+        if conversation.mode == Conversation.Mode.AFTER_24HR:
+            chat_message.expires_at = timezone.now() + timedelta(hours=24)
+            chat_message.save(update_fields=['expires_at'])
+
+        conversation.save(update_fields=['updated_at'])
 
     @database_sync_to_async
     def user_can_access_conversation(self):

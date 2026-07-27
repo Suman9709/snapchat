@@ -5,19 +5,19 @@
     .camera-shell {
       background: #050505;
     }
-
+    
     .snap-glass {
       background: rgba(0, 0, 0, 0.38);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
     }
-
+    
     .filter.is-active {
       background: #fffc00;
       color: #111;
       border-color: #fffc00;
     }
-
+    
     .filter {
       width: 68px;
       height: 68px;
@@ -30,11 +30,11 @@
       gap: 3px;
       line-height: 1;
     }
-
+    
     .filter i {
       font-size: 18px;
     }
-
+    
     .filter span {
       max-width: 54px;
       overflow: hidden;
@@ -43,57 +43,57 @@
       font-size: 10px;
       font-weight: 800;
     }
-
+    
     .send-panel {
       transform: translateY(105%);
-      transition: transform 320ms cubic-bezier(.2, .9, .2, 1);
+      transition: transform 320ms cubic-bezier(0.2, 0.9, 0.2, 1);
     }
-
+    
     .send-panel.is-open {
       transform: translateY(0);
     }
-
+    
     .friend-option {
       opacity: 0;
       transform: translateY(12px);
       transition: background-color 180ms ease, color 180ms ease, opacity 260ms ease, transform 260ms ease;
     }
-
+    
     .send-panel.is-open .friend-option {
       opacity: 1;
       transform: translateY(0);
     }
-
+    
     .friend-option.is-selected {
       background: #fffc00;
       color: #111;
     }
-
+    
     .friend-option.is-selected .friend-subtitle {
-      color: rgba(17, 17, 17, .62);
+      color: rgba(17, 17, 17, 0.62);
     }
-
+    
     .friend-option.is-selected .check-dot {
       transform: scale(1);
       opacity: 1;
     }
-
+    
     .check-dot {
-      transform: scale(.6);
+      transform: scale(0.6);
       opacity: 0;
       transition: transform 180ms ease, opacity 180ms ease;
     }
-
+    
     .selected-chip {
       animation: chip-in 180ms ease both;
     }
-
+    
     @keyframes chip-in {
       from {
         opacity: 0;
-        transform: translateY(6px) scale(.96);
+        transform: translateY(6px) scale(0.96);
       }
-
+    
       to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -112,27 +112,42 @@
     <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/70"></div>
 
     <header class="absolute left-0 right-0 top-0 z-20 flex items-center justify-between px-4 pt-5">
-      <a href="{% url 'home' %}" class="snap-glass flex h-10 w-10 items-center justify-center rounded-full text-white">
-        <i class="fa-solid fa-chevron-left"></i>
-      </a>
+      <a href="{% url 'home' %}" class="snap-glass flex h-10 w-10 items-center justify-center rounded-full text-white"><i class="fa-solid fa-chevron-left"></i></a>
 
       <div class="snap-glass flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold">
         <span class="h-2 w-2 rounded-full bg-[#fffc00]"></span>
-        <span>{% if is_direct_snap %}To {{ direct_friend.username }}{% else %}Snap Camera{% endif %}</span>
+        <span>
+          {% if is_direct_snap %}
+            To {{ direct_friend.username }}
+          {% else %}
+            Snap Camera
+          {% endif %}
+        </span>
       </div>
 
-      <button id="retake" type="button" class="snap-glass hidden h-10 w-10 items-center justify-center rounded-full text-white">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <button id="retake" type="button" class="snap-glass hidden h-10 w-10 items-center justify-center rounded-full text-white"><i class="fa-solid fa-xmark"></i></button>
     </header>
 
     <div id="status" class="absolute left-4 right-4 top-20 z-30 hidden rounded-full px-4 py-3 text-center text-sm font-semibold shadow-lg"></div>
 
-    <div id="captionWrap" class="absolute left-4 right-4 {% if is_direct_snap %}bottom-24{% else %}bottom-[18.25rem]{% endif %} z-20 hidden">
+    <div id="captionWrap"
+      class="absolute left-4 right-4 {% if is_direct_snap %}
+        
+        
+        bottom-24
+
+
+      {% else %}
+        
+        
+        bottom-[18.25rem]
+
+
+      {% endif %} z-20 hidden">
       <input id="caption" type="text" placeholder="Add a caption" class="w-full rounded-full border border-white/15 bg-black/35 px-4 py-3 text-sm font-semibold text-white outline-none backdrop-blur placeholder:text-white/65 focus:border-[#fffc00]" />
     </div>
 
-    <div id="filterStrip" class="absolute bottom-28 left-0 right-0 z-20 flex gap-3 overflow-x-auto px-4 pb-2">
+    <div id="filterStrip" class="absolute bottom-28 left-0 right-0 z-20 flex gap-3 overflow-x-auto scrollbar-none px-4 pb-2">
       <button class="filter is-active border border-white/20" data-filter="none" data-effect="none">
         <i class="fa-regular fa-circle"></i>
         <span>Normal</span>
@@ -177,17 +192,11 @@
 
     <div id="captureDock" class="absolute bottom-5 left-0 right-0 z-20 flex items-center justify-center px-5">
       <div class="flex w-full items-center justify-between">
-        <a href="{% url 'home' %}" class="snap-glass flex h-12 w-12 items-center justify-center rounded-full">
-          <i class="fa-solid fa-message"></i>
-        </a>
+        <a href="{% url 'home' %}" class="snap-glass flex h-12 w-12 items-center justify-center rounded-full"><i class="fa-solid fa-message"></i></a>
 
-        <button id="capture" type="button" class="flex h-20 w-20 items-center justify-center rounded-full border-[6px] border-white bg-white/30 shadow-[0_0_0_5px_rgba(0,0,0,.22)] transition active:scale-95">
-          <span class="h-14 w-14 rounded-full bg-white"></span>
-        </button>
+        <button id="capture" type="button" class="flex h-20 w-20 items-center justify-center rounded-full border-[6px] border-white bg-white/30 shadow-[0_0_0_5px_rgba(0,0,0,.22)] transition active:scale-95"><span class="h-14 w-14 rounded-full bg-white"></span></button>
 
-        <button type="button" class="snap-glass flex h-12 w-12 items-center justify-center rounded-full">
-          <i class="fa-solid fa-images"></i>
-        </button>
+        <button type="button" class="snap-glass flex h-12 w-12 items-center justify-center rounded-full"><i class="fa-solid fa-images"></i></button>
       </div>
     </div>
 
@@ -201,58 +210,59 @@
         </button>
       </div>
     {% else %}
-    <section id="sendPanel" class="send-panel absolute bottom-0 left-0 right-0 z-30 max-h-[50%] rounded-t-[28px] bg-white text-black shadow-2xl">
-      <div class="mx-auto mt-2 h-1.5 w-12 rounded-full bg-gray-300"></div>
+      <section id="sendPanel" class="send-panel absolute bottom-0 left-0 right-0 z-30 max-h-[50%] rounded-t-[28px] bg-white text-black shadow-2xl">
+        <div class="mx-auto mt-2 h-1.5 w-12 rounded-full bg-gray-300"></div>
 
-      <div class="px-4 pt-3">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <h2 class="text-lg font-black leading-tight">Send To</h2>
-            <p id="selectedCount" class="text-xs font-semibold text-gray-500">Choose friends for this snap</p>
+        <div class="px-4 pt-3">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-black leading-tight">Send To</h2>
+              <p id="selectedCount" class="text-xs font-semibold text-gray-500">Choose friends for this snap</p>
+            </div>
+
+            <button id="select-all" type="button" class="rounded-full bg-gray-100 px-3 py-2 text-xs font-extrabold text-gray-700">Select all</button>
           </div>
 
-          <button id="select-all" type="button" class="rounded-full bg-gray-100 px-3 py-2 text-xs font-extrabold text-gray-700">Select all</button>
+          <div id="selectedChips" class="mt-3 flex min-h-8 gap-2 overflow-x-auto"></div>
         </div>
 
-        <div id="selectedChips" class="mt-3 flex min-h-8 gap-2 overflow-x-auto"></div>
-      </div>
-
-      <div id="friendList" class="mt-3 max-h-52 overflow-y-auto px-4 pb-24">
-        <div class="space-y-2">
-          {% for friend in friends %}
-            <label class="friend-option flex cursor-pointer items-center gap-3 rounded-2xl bg-gray-100 px-3 py-3" data-friend-name="{{ friend.username }}">
-              <input type="checkbox" name="receivers" value="{{ friend.id }}" class="receiver-checkbox hidden" {% if friend.id == selected_friend_id %}checked{% endif %} />
-
-              <div class="h-11 w-11 flex-shrink-0 overflow-hidden rounded-full bg-gray-200">
-                {% if friend.profile_pic %}
-                  <img src="{{ friend.profile_pic.url }}" alt="{{ friend.username }}" class="h-full w-full object-cover" />
+        <div id="friendList" class="mt-3 max-h-52 overflow-y-auto px-4 pb-24">
+          <div class="space-y-2">
+            {% for friend in friends %}
+              <label class="friend-option flex cursor-pointer items-center gap-3 rounded-2xl bg-gray-100 px-3 py-3" data-friend-name="{{ friend.username }}">
+                {% if selected_friend_id and friend.id == selected_friend_id %}
+                  <input type="checkbox" name="receivers" value="{{ friend.id }}" class="receiver-checkbox hidden" checked />
                 {% else %}
-                  <div class="flex h-full w-full items-center justify-center bg-[#fffc00] text-sm font-black text-black">{{ friend.username|first|upper }}</div>
+                  <input type="checkbox" name="receivers" value="{{ friend.id }}" class="receiver-checkbox hidden" />
                 {% endif %}
-              </div>
+                <div class="h-11 w-11 flex-shrink-0 overflow-hidden rounded-full bg-gray-200">
+                  {% if friend.profile_pic %}
+                    <img src="{{ friend.profile_pic.url }}" alt="{{ friend.username }}" class="h-full w-full object-cover" />
+                  {% else %}
+                    <div class="flex h-full w-full items-center justify-center bg-[#fffc00] text-sm font-black text-black">{{ friend.username|first|upper }}</div>
+                  {% endif %}
+                </div>
 
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-extrabold">{{ friend.username }}</p>
-                <p class="friend-subtitle text-xs font-semibold text-gray-500">Tap to add recipient</p>
-              </div>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-extrabold">{{ friend.username }}</p>
+                  <p class="friend-subtitle text-xs font-semibold text-gray-500">Tap to add recipient</p>
+                </div>
 
-              <span class="check-dot flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-black text-xs text-[#fffc00]">
-                <i class="fa-solid fa-check"></i>
-              </span>
-            </label>
-          {% empty %}
-            <p class="rounded-2xl bg-gray-100 px-4 py-5 text-center text-sm font-semibold text-gray-500">No friends available</p>
-          {% endfor %}
+                <span class="check-dot flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-black text-xs text-[#fffc00]"><i class="fa-solid fa-check"></i></span>
+              </label>
+            {% empty %}
+              <p class="rounded-2xl bg-gray-100 px-4 py-5 text-center text-sm font-semibold text-gray-500">No friends available</p>
+            {% endfor %}
+          </div>
         </div>
-      </div>
 
-      <div class="absolute bottom-0 left-0 right-0 bg-white px-4 pb-4 pt-3">
-        <button id="send" type="button" class="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#fffc00] text-sm font-black text-black transition active:scale-[.98] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500">
-          <span id="sendLabel">Send Snap</span>
-          <i class="fa-solid fa-paper-plane"></i>
-        </button>
-      </div>
-    </section>
+        <div class="absolute bottom-0 left-0 right-0 bg-white px-4 pb-4 pt-3">
+          <button id="send" type="button" class="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#fffc00] text-sm font-black text-black transition active:scale-[.98] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500">
+            <span id="sendLabel">Send Snap</span>
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
+      </section>
     {% endif %}
   </div>
 

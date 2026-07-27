@@ -1,0 +1,129 @@
+{% extends 'index.html' %}
+{% load static %}
+
+{% block main %}
+
+<div class="h-full bg-gray-50">
+
+    <!-- Header -->
+    <div class="pt-6 px-5 pb-4 bg-white shadow-sm flex items-center gap-3">
+
+        <a href="{% url 'chat' friend.id %}"
+        class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+            <i class="fa-solid fa-chevron-left"></i>
+        </a>
+
+
+        <h2 class="text-lg font-bold">
+            Chat Settings
+        </h2>
+
+    </div>
+
+    <!-- Settings -->
+    <div class=" space-y-4 flex felx-col justify-center mt-10 min-h-full">
+        <form 
+        method="POST"
+        action="{% url 'update-chat-settings' conversation.id %}" 
+        class="min-h-full flex flex-col gap-8">
+        
+        {% csrf_token %}
+
+
+
+        <!-- Keep Forever -->
+
+        <label class="bg-white rounded-2xl p-5 flex items-center justify-between shadow-sm">
+            <div>
+                <h3 class="font-bold">
+                    Keep Messages
+                </h3>
+                <p class="text-sm text-gray-400">
+                    Messages will stay permanently
+                </p>
+            </div>
+            <input 
+            type="radio"
+            name="mode"
+            value="keep"
+            class="radio radio-warning"
+            {% if conversation.mode == 'keep' %}
+            checked
+            {% endif %}
+            >
+
+        </label>
+
+        <!-- Delete on Close -->
+        <label class="bg-white rounded-2xl p-5 flex items-center justify-between shadow-sm">
+
+            <div>
+                <h3 class="font-bold">
+                    Delete when chat closes
+                </h3>
+
+                <p class="text-sm text-gray-400">
+                    Messages disappear after leaving chat
+                </p>
+            </div>
+            <input 
+            type="radio"
+            name="mode"
+            value="on_close"
+            class="radio radio-warning"
+            {% if conversation.mode == 'on_close' %}
+            checked
+            {% endif %}
+            >
+
+        </label>
+
+        <!-- After 24 Hours -->
+
+        <label class="bg-white rounded-2xl p-5 flex items-center justify-between shadow-sm">
+
+            <div>
+                <h3 class="font-bold">
+                    Delete after 24 hours
+                </h3>
+
+                <p class="text-sm text-gray-400">
+                    Messages automatically expire
+                </p>
+            </div>
+
+
+            <input 
+            type="radio"
+            name="mode"
+            value="after_24_hr"
+            class="radio radio-warning"
+            {% if conversation.mode == 'after_24_hr' %}
+            checked
+            {% endif %}
+            >
+
+        </label>
+
+
+
+
+        <button
+        type="submit"
+        class="mt-5 w-full bg-yellow-400 py-3 rounded-full font-bold">
+
+            Save Settings
+
+        </button>
+
+
+        </form>
+
+
+    </div>
+
+
+</div>
+
+
+{% endblock %}

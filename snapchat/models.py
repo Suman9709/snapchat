@@ -37,6 +37,7 @@ class Conversation(models.Model):
    mode = models.CharField(max_length=20, choices=Mode.choices, default=Mode.KEEP)
    streak = models.PositiveIntegerField(default=0, editable=False)
    created_at = models.DateTimeField(auto_now_add=True)
+   updated_at = models.DateTimeField(auto_now=True)
    
    @property 
    def last_message(self):    
@@ -59,7 +60,7 @@ class Message(models.Model):
     is_system = models.BooleanField(default=False)
     
     created_at = models.DateTimeField(auto_now_add=True)
-    
+    expires_at = models.DateTimeField(null=True, blank=True)
     
     def __str__(self):
         return f"Message(from={self.sender.username}, message={self.message[:20]}...)"

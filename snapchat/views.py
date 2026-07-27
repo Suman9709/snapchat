@@ -16,7 +16,16 @@ from django.db import models, transaction
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
+from django.utils import timezone
+from datetime import timedelta
+
 # Create your views here.
+
+def delete_expired_messages():
+    Message.objects.filter(
+        expires_at__isnull=False,
+        expires_at__lte=timezone.now(),
+    ).delete()
 
 @ensure_csrf_cookie
 @require_http_methods(["GET", "POST"])
@@ -43,10 +52,19 @@ def login_view(request):
     return render(request, 'accounts/login.html', {'form': form})
 
 
+
+@login_required
+def logout_view(request):
+    logout(request)
+    return redirect('login')
+
+
     
 @ensure_csrf_cookie
 @login_required
 def home(request):
+    delete_expired_messages()
+
     friend_requests = FriendRequest.objects.filter(
         status=FriendRequest.StatusChoices.ACCEPTED
         ).filter(Q(from_user=request.user) | Q(to_user=request.user))
@@ -57,8 +75,7 @@ def home(request):
             friend = fr.to_user
         else:
             friend = fr.from_user
-    # all friend
-    
+        # all friend
         conversation = (
             Conversation.objects.filter(participants = request.user).filter(participants = friend).first()
         
@@ -87,20 +104,19 @@ def home(request):
 
 
 @login_required
-def logout_view(request):
-    logout(request)
-    return redirect('login')
-
-@login_required
 @ensure_csrf_cookie
 def chat(request, id):
+    delete_expired_messages()
+
     # Implementation for the chat view
     friend = get_object_or_404(get_user_model(), pk=id)
 
     if friend == request.user or not are_friends(request.user, friend):
         return redirect('home')
     
-    conversation = Conversation.objects.filter(participants = request.user).filter(participants = friend).first()
+    conversation = Conversation.objects.filter(
+        participants = request.user).filter(
+            participants = friend).distinct().first()
 
     if not conversation:
         conversation = Conversation.objects.create()
@@ -121,7 +137,7 @@ def upload_snap(request):
     conversation_id = request.POST.get('conversation')
     message_text = request.POST.get('message', '').strip()
     
-    if not image:
+    if not image and not message_text:
         return JsonResponse({
             "error":"image not found",
            
@@ -142,12 +158,55 @@ def upload_snap(request):
         message = message_text
         
     )
+    
+    if conversation.mode== Conversation.Mode.AFTER_24HR:
+        message.expires_at = timezone.now() + timedelta(hours=24)
+        message.save()
+        
+    conversation.save()
+    
     return JsonResponse({
         'image':message.image.url,
         'message': message.message,
         'id':message.id,
         'created_at':message.created_at.strftime('%H:%M')
     })
+    
+    
+def chat_setting(request,id):
+    conversation = get_object_or_404(Conversation, id=id, participants = request.user)
+    friend = conversation.participants.exclude(id = request.user.id).first()
+    return render(request, 'pages/setting.html', {'conversation':conversation, 'friend':friend})
+    
+    
+@login_required
+@require_http_methods(['POST'])
+def update_chat_settings(request, id):
+    conversation = get_object_or_404(
+        Conversation,
+        id=id,
+        participants=request.user
+    )
+    mode = request.POST.get('mode')
+    valid_modes = [
+        Conversation.Mode.KEEP,
+        Conversation.Mode.ON_CLOSE,
+        Conversation.Mode.AFTER_24HR
+    ]
+    if mode in valid_modes:
+        
+        conversation.mode = mode
+        conversation.save(update_fields=['mode'])
+    return redirect ('chat-settings', id=id)
+
+    
+    
+@login_required
+def chat_close(request, id):
+    conversation = get_object_or_404( Conversation, id=id, participants=request.user )
+    if conversation.mode == Conversation.Mode.ON_CLOSE:
+        conversation.messages.all().delete()
+    return redirect('home')
     
 
     
@@ -242,7 +301,7 @@ def send_invite(request, id):
 @login_required
 def get_all_friend_request(request):
     
-    #friendrequest baali table oe chalayenge ek query and cjek karenge ki request.user ka pending friend kon kon h
+    #friendrequest baali table pe chalayenge ek query and check karenge ki request.user ka pending friend kon kon h
     friend_requests= FriendRequest.objects.filter(status = FriendRequest.StatusChoices.PENDING, to_user = request.user)
     return render(
         request, 'pages/friend_request.html', {"friend_requests":friend_requests}
@@ -373,6 +432,9 @@ def send_snap(request):
                 message=caption,
                 image=snap.image.name,
             )
+            if conversation.mode == Conversation.Mode.AFTER_24HR:
+                message.expires_at = timezone.now() + timedelta(hours=24)
+                message.save(update_fields=['expires_at'])
             broadcast_messages.append((conversation.id, message))
 
     channel_layer = get_channel_layer()
