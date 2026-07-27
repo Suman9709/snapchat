@@ -27,17 +27,20 @@ class FriendRequest(models.Model):
         return f"FriendRequest(from={self.from_user.username}, to={self.to_user.username}, status={self.status})"
 
 class Conversation(models.Model):
+    
+   class Mode(models.TextChoices):
+        KEEP='keep','Keep'
+        ON_CLOSE='on_close','ON_CLOSE',
+        AFTER_24HR = "after_24_hr","After_24_hr"
+        
    participants = models.ManyToManyField(get_user_model(), related_name='conversations')
+   mode = models.CharField(max_length=20, choices=Mode.choices, default=Mode.KEEP)
+   streak = models.PositiveIntegerField(default=0, editable=False)
    created_at = models.DateTimeField(auto_now_add=True)
    
-   
-   
    @property 
-   def last_message(self):
-       
+   def last_message(self):    
         return self.messages.order_by("-created_at").first()
-   
-   
    def __str__(self):
        user = ", ".join(
            user.username
@@ -52,9 +55,10 @@ class Message(models.Model):
     sender = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='sent_messages')
     message = models.TextField(blank=True)
     image = models.ImageField(upload_to='snaps', blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
     seen = models.BooleanField(default=False)
+    is_system = models.BooleanField(default=False)
     
+    created_at = models.DateTimeField(auto_now_add=True)
     
     
     def __str__(self):

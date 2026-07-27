@@ -1,8 +1,102 @@
+{% extends 'index.html' %}
 
 
+{% block main %}
 
-<form action="{% url 'login' %}" method="post">
-  {% csrf_token %}
-  {{ form }}
-  <button type="submit">Login</button>
-</form>
+<div class="h-full min-h-0 flex items-center justify-center  bg-gradient-to-br from-yellow-300 via-yellow-100 to-purple-300  px-5 overflow-hidden">
+
+
+    <!-- Background blur effects -->
+
+    <div class="absolute top-10 right-10 w-28 h-28  bg-white/30 rounded-full blur-xl"></div>
+
+
+    <div class="absolute bottom-10 left-10 w-36 h-36  bg-purple-400/30 rounded-full blur-xl"></div>
+
+    <!-- Login Card -->
+
+    <div class="relative w-full max-w-md  bg-white/80 backdrop-blur-xl rounded-[40px] shadow-2xl px-8 py-10">
+        <!-- Logo -->
+
+        <div class="flex justify-center">
+
+            <div class="w-20 h-20 rounded-[28px]
+                        bg-yellow-400
+                        flex items-center justify-center
+                        shadow-lg shadow-yellow-300">
+
+                <i class="fa-solid fa-right-to-bracket 
+                          text-white text-3xl"></i>
+
+            </div>
+        </div>
+        <!-- Header -->
+        <div class="text-center mt-6">
+            <h1 class="text-3xl font-black text-gray-900">
+                Welcome Back 👋
+            </h1>
+            <p class="text-gray-500 mt-2 text-sm">
+                Login and continue sharing your snaps ✨
+            </p>
+        </div>
+
+        <!-- Form -->
+        <form action="{% url 'login' %}" 
+              method="POST"
+              class="mt-8 space-y-5">
+            {% csrf_token %}
+
+            <!-- Username -->
+            <div>
+                <label class="text-sm font-semibold text-gray-700">
+                    Username
+                </label>
+
+                <div class="relative mt-2">
+                    <i class="fa-solid fa-user  absolute left-4 top-1/2  -translate-y-1/2  text-gray-400"></i>
+                    <input 
+                        type="text"
+                        name="username"
+                        placeholder="Enter username"
+                        class=" w-full pl-12 pr-4 py-4 rounded-2xl bg-gray-100 border-none outline-none focus:ring-2 focus:ring-yellow-400 transition"
+                    >
+                </div>
+            </div>
+            <!-- Password -->
+            <div>
+                <label class="text-sm font-semibold text-gray-700">
+                    Password
+                </label>
+
+                <div class="relative mt-2">
+                    <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+
+                    <input 
+                        type="password"
+                        name="password"
+                        placeholder="Enter password"
+                        class=" w-full pl-12 pr-4 py-4 rounded-2xl bg-gray-100 border-none outline-none focus:ring-2 focus:ring-yellow-400 transition"
+                    >
+                </div>
+            </div>
+            <!-- Login Button -->
+            <button 
+                type="submit"
+                class=" w-full mt-4 py-4 rounded-2xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-lg shadow-lg shadow-yellow-300 transition active:scale-95
+                ">
+                Login 🚀
+            </button>
+        </form>
+        <!-- Register -->
+        <p class="text-center text-sm text-gray-500 mt-8">
+            Don't have an account?
+            <a href="{% url 'register-user' %}"
+               class="font-bold text-yellow-500 hover:text-yellow-600">
+                Create Account
+        </a>
+        </p>
+    </div>
+</div>
+
+
+{% endblock %}
