@@ -333,9 +333,12 @@ def user_profile(request):
     user = request.user
     snap_count = Message.objects.filter(sender = user, image__isnull=False).count()
     
+    active_streaks = request.user.conversations.filter(
+        streak__gt=0
+    ).count()
     friend_count = FriendRequest.objects.filter(status=FriendRequest.StatusChoices.ACCEPTED).filter(models.Q(from_user = user) | Q(to_user = user)).count()
     
-    return render(request, 'pages/profile.html', {'user':user, 'snap_count':snap_count,'friend_count':friend_count})
+    return render(request, 'pages/profile.html', {'user':user, 'snap_count':snap_count,'friend_count':friend_count, 'active_streaks':active_streaks})
 
 
 
