@@ -34,7 +34,7 @@ class ChatConsume(AsyncWebsocketConsumer):
         print("Disconnected ")
     
     async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
+        text_data_json = json.loads(text_data) # convert data in to python object
         message = text_data_json.get('message')
         image = text_data_json.get('image')
         

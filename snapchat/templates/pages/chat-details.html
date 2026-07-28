@@ -55,7 +55,9 @@
               
               
               
+              
                 chat-end
+
 
 
 
@@ -65,7 +67,9 @@
               
               
               
+              
                 chat-start
+
 
 
 
@@ -100,7 +104,7 @@
       {% else %}
         <!-- Empty Chat State -->
 
-        <div class="h-full flex flex-col items-center justify-center text-center">
+        <div id="emptyChat" class="h-full flex flex-col items-center justify-center text-center">
           <div class="w-24 h-24 rounded-full bg-yellow-400 flex items-center justify-center mb-4 shadow-lg">
             <i class="fa-solid fa-comments text-5xl text-black"></i>
           </div>
@@ -145,7 +149,7 @@
     </div>
     {% comment %} <a href="{% url 'camera' %}"><i class="fa-solid fa-camera"></i></a> {% endcomment %}
     <div class="flex flex-shrink-0 items-center gap-3 p-4 shadow-sm">
-      <a  href="{% url 'camera' %}"  class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black"><i class="fa-solid fa-camera text-white text-lg"></i></a>
+      <button id="camera_btn" type="button" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black"><i class="fa-solid fa-camera text-white text-lg"></i></button>
       <div class="min-w-0 flex-1">
         <input id="message-input" type="text" placeholder="Send chat..." class="w-full rounded-full bg-gray-100 px-4 py-2 focus:outline-none" />
       </div>
@@ -160,9 +164,11 @@
     const imageContainer = document.getElementById('image-container')
     const imagePreview = document.getElementById('image-preview')
     
-    cameraBtn.addEventListener('click', () => {
-      imageInput.click()
-    })
+    if (cameraBtn) {
+      cameraBtn.addEventListener('click', () => {
+        imageInput.click()
+      })
+    }
     imageInput.addEventListener('change', () => {
       const file = imageInput.files[0]
       if (file) {
@@ -254,7 +260,8 @@
       })
     
       if (!response.ok) {
-        throw new Error('Image upload failed')
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Image upload failed')
       }
     
       return await response.json()
@@ -265,32 +272,45 @@
     
       const message = input.value.trim()
       let imageData = null
-    
-      if (imageInput.files.length > 0) {
-        imageData = await uploadImage(message)
-      }
-    
-      if (!message && !imageData) {
+
+      if (!message && imageInput.files.length === 0) {
         return
       }
-    
-      socket.send(
-        JSON.stringify({
-          message: imageData ? imageData.message : message,
-          image: imageData ? imageData.image : null
-        })
-      )
-    
-      input.value = ''
-      imageInput.value = ''
-      imagePreview.src = ''
-      imagePath.textContent = ''
-      imageContainer.classList.add('hidden')
-      imageContainer.classList.remove('flex')
+
+      try {
+        if (socket.readyState !== WebSocket.OPEN) {
+          throw new Error('Chat connection is not ready. Please refresh and try again.')
+        }
+
+        if (imageInput.files.length > 0) {
+          imageData = await uploadImage(message)
+        }
+
+        socket.send(
+          JSON.stringify({
+            message: imageData ? imageData.message : message,
+            image: imageData ? imageData.image : null
+          })
+        )
+
+        input.value = ''
+        imageInput.value = ''
+        imagePreview.src = ''
+        imagePath.textContent = ''
+        imageContainer.classList.add('hidden')
+        imageContainer.classList.remove('flex')
+      } catch (error) {
+        alert(error.message)
+      }
     }
     document.getElementById('send-btn').addEventListener('click', sendMessage)
     
     function addMessage(username, message, timestamp, isOwnMessage, image) {
+      const emptyChat = document.getElementById('emptyChat')
+      if (emptyChat) {
+        emptyChat.remove()
+      }
+
       const messageWrapper = document.createElement('div')
       messageWrapper.className = `chat ${isOwnMessage ? 'chat-end' : 'chat-start'}`
     
@@ -322,5 +342,6 @@
     
       messages.scrollTop = messages.scrollHeight
     }
+    messages.scrollTop = messages.scrollHeight
   </script>
 {% endblock %}
