@@ -6,9 +6,12 @@
     <!-- Header -->
     <header class="flex flex-shrink-0 items-center justify-between px-4 pt-6 pb-3 shadow-xs">
       <div class="flex flex-row gap-3 items-center">
-        <a href="{% url 'profile' %}" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
-          <i class="fa-solid fa-user text-yellow-300"></i>
-          {% comment %} {{ user.profile_pic.url}} {% endcomment %}
+        <a href="{% url 'profile' %}" class="size-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+          {% if request.user.profile_pic %}
+            <img src="{{ request.user.profile_pic.url }}" alt="{{ request.user.username }}" class="w-full h-full object-cover" />
+          {% else %}
+            <i class="fa-solid fa-user text-yellow-300"></i>
+          {% endif %}
         </a>
 
         <a href="{% url 'search' %}" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2"><i class="fa-solid fa-magnifying-glass"></i></a>
@@ -82,6 +85,8 @@
                       {{ chat.last_message.message|truncatechars:25 }}
                     {% endif %}
                   </span>
+                  {% else %}
+                  <span class="text-xs text-gray-400">Say hii to {{ chat.friend.username }}</span>
                 {% endif %}
               </a>
             </div>
