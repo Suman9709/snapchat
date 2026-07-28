@@ -5,8 +5,12 @@ name = "pypi"
 
 [packages]
 django = "*"
-channels = {extras = ["daphne"], version = "*"}
 pillow = "*"
+psycopg2-binary = "*"
+redis = "*"
+channels = {extras = ["daphne"], version = "*"}
+channels-redis = "*"
+python-dotenv = "*"
 
 [dev-packages]
 

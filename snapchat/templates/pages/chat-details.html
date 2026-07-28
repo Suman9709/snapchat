@@ -206,6 +206,7 @@
     const conversationId = '{{ conversation.id }}'
     const currentUserId = Number('{{ request.user.id }}')
     const messages = document.getElementById('messages')
+    const sendBtn = document.getElementById('send-btn')
     
     const socketProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
     const socket = new WebSocket(socketProtocol + '://' + window.location.host + '/ws/chat/' + conversationId + '/')
@@ -266,6 +267,49 @@
     
       return await response.json()
     }
+
+    function waitForSocketOpen() {
+      if (socket.readyState === WebSocket.OPEN) {
+        return Promise.resolve()
+      }
+
+      if (socket.readyState !== WebSocket.CONNECTING) {
+        return Promise.reject(new Error('Chat connection is not ready. Please refresh and try again.'))
+      }
+
+      return new Promise((resolve, reject) => {
+        const timeout = window.setTimeout(() => {
+          cleanup()
+          reject(new Error('Chat connection is not ready. Please refresh and try again.'))
+        }, 2500)
+
+        function cleanup() {
+          window.clearTimeout(timeout)
+          socket.removeEventListener('open', handleOpen)
+          socket.removeEventListener('close', handleClose)
+          socket.removeEventListener('error', handleError)
+        }
+
+        function handleOpen() {
+          cleanup()
+          resolve()
+        }
+
+        function handleClose() {
+          cleanup()
+          reject(new Error('Chat connection is not ready. Please refresh and try again.'))
+        }
+
+        function handleError() {
+          cleanup()
+          reject(new Error('Chat connection is not ready. Please refresh and try again.'))
+        }
+
+        socket.addEventListener('open', handleOpen)
+        socket.addEventListener('close', handleClose)
+        socket.addEventListener('error', handleError)
+      })
+    }
     
     async function sendMessage() {
       const input = document.getElementById('message-input')
@@ -278,9 +322,8 @@
       }
 
       try {
-        if (socket.readyState !== WebSocket.OPEN) {
-          throw new Error('Chat connection is not ready. Please refresh and try again.')
-        }
+        sendBtn.disabled = true
+        await waitForSocketOpen()
 
         if (imageInput.files.length > 0) {
           imageData = await uploadImage(message)
@@ -301,9 +344,11 @@
         imageContainer.classList.remove('flex')
       } catch (error) {
         alert(error.message)
+      } finally {
+        sendBtn.disabled = false
       }
     }
-    document.getElementById('send-btn').addEventListener('click', sendMessage)
+    sendBtn.addEventListener('click', sendMessage)
     
     function addMessage(username, message, timestamp, isOwnMessage, image) {
       const emptyChat = document.getElementById('emptyChat')
