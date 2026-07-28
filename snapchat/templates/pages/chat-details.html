@@ -52,11 +52,23 @@
           <div class="chat 
             {% if message.sender == request.user %}
               
+              
+              
+              
                 chat-end
+
+
+
 
             {% else %}
               
+              
+              
+              
                 chat-start
+
+
+
 
             {% endif %}">
             <!-- Header -->
@@ -77,10 +89,10 @@
 
             <!-- Snap Message -->
             {% if message.image %}
-              <button class="snap-open mt-2 w-32 h-32 rounded-2xl bg-yellow-400 flex flex-col items-center justify-center gap-2 shadow-lg" data-image="{{ message.image.url }}">
-                <i class="fa-solid fa-image text-4xl text-black"></i>
+              <button class="snap-open mt-2 w-32 h-12 rounded-2xl bg-purple-600 flex flex-col items-center justify-center gap-2 shadow-lg" data-image="{{ message.image.url }}">
+                {% comment %} <i class="fa-solid fa-image text-xs text-black"></i> {% endcomment %}
 
-                <span class="text-xs font-bold text-black">Open Snap</span>
+                <span class="text-xs font-bold text-white">Open Snap</span>
               </button>
             {% endif %}
           </div>
@@ -123,6 +135,7 @@
 
     <!-- Input -->
     {% csrf_token %}
+
     <div id="image-container" class="hidden flex-shrink-0 items-center gap-2 border-t px-4 py-2">
       <input type="file" id="image-input" accept="image/*" class="hidden" />
 
@@ -130,9 +143,9 @@
 
       <p id="image-path" class="min-w-0 flex-1 truncate text-xs text-gray-500"></p>
     </div>
-
+    {% comment %} <a href="{% url 'camera' %}"><i class="fa-solid fa-camera"></i></a> {% endcomment %}
     <div class="flex flex-shrink-0 items-center gap-3 p-4 shadow-sm">
-      <button id="camera_btn" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black"><i class="fa-solid fa-camera text-white text-lg"></i></button>
+      <a  href="{% url 'camera' %}"  class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black"><i class="fa-solid fa-camera text-white text-lg"></i></a>
       <div class="min-w-0 flex-1">
         <input id="message-input" type="text" placeholder="Send chat..." class="w-full rounded-full bg-gray-100 px-4 py-2 focus:outline-none" />
       </div>

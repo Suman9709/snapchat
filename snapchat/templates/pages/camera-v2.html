@@ -130,20 +130,7 @@
 
     <div id="status" class="absolute left-4 right-4 top-20 z-30 hidden rounded-full px-4 py-3 text-center text-sm font-semibold shadow-lg"></div>
 
-    <div id="captionWrap"
-      class="absolute left-4 right-4 {% if is_direct_snap %}
-        
-        
-        bottom-24
-
-
-      {% else %}
-        
-        
-        bottom-[18.25rem]
-
-
-      {% endif %} z-20 hidden">
+    <div id="captionWrap" class="absolute bottom-24 left-4 right-4 z-20 hidden">
       <input id="caption" type="text" placeholder="Add a caption" class="w-full rounded-full border border-white/15 bg-black/35 px-4 py-3 text-sm font-semibold text-white outline-none backdrop-blur placeholder:text-white/65 focus:border-[#fffc00]" />
     </div>
 
@@ -194,76 +181,90 @@
       <div class="flex w-full items-center justify-between">
         <a href="{% url 'home' %}" class="snap-glass flex h-12 w-12 items-center justify-center rounded-full"><i class="fa-solid fa-message"></i></a>
 
+        <input type="file" id="image-input" accept="image/*" class="hidden" />
         <button id="capture" type="button" class="flex h-20 w-20 items-center justify-center rounded-full border-[6px] border-white bg-white/30 shadow-[0_0_0_5px_rgba(0,0,0,.22)] transition active:scale-95"><span class="h-14 w-14 rounded-full bg-white"></span></button>
-
-        <button type="button" class="snap-glass flex h-12 w-12 items-center justify-center rounded-full"><i class="fa-solid fa-images"></i></button>
+        <button id="open-disk-btn" type="button" class="snap-glass flex h-12 w-12 items-center justify-center rounded-full" aria-label="Choose image from disk"><i class="fa-solid fa-images"></i></button>
       </div>
     </div>
 
-    {% if is_direct_snap %}
-      <input type="checkbox" name="receivers" value="{{ direct_friend.id }}" class="receiver-checkbox hidden" checked />
+    <div id="previewSendDock" class="absolute bottom-5 left-0 right-0 z-30 hidden px-5">
+      <button id="openSendPanel" type="button" class="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#fffc00] text-sm font-black text-black shadow-2xl transition active:scale-[.98]">
+        <span>Send To</span>
+        <i class="fa-solid fa-paper-plane"></i>
+      </button>
+    </div>
 
-      <div id="directSendDock" class="absolute bottom-5 left-0 right-0 z-30 hidden px-5">
-        <button id="send" type="button" class="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#fffc00] text-sm font-black text-black shadow-2xl transition active:scale-[.98] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500">
-          <span id="sendLabel">Send to {{ direct_friend.username }}</span>
+    <section id="sendPanel" class="send-panel absolute bottom-0 left-0 right-0 z-30 max-h-[50%] rounded-t-[28px] bg-white text-black shadow-2xl">
+      <div class="mx-auto mt-2 h-1.5 w-12 rounded-full bg-gray-300"></div>
+
+      <div class="px-4 pt-3">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-black leading-tight">Send To</h2>
+            <p id="selectedCount" class="text-xs font-semibold text-gray-500">Choose recipients for this snap</p>
+          </div>
+
+          <button id="select-all" type="button" class="rounded-full bg-gray-100 px-3 py-2 text-xs font-extrabold text-gray-700">All friends</button>
+        </div>
+
+        <div id="selectedChips" class="mt-3 flex min-h-8 gap-2 overflow-x-auto"></div>
+      </div>
+
+      <div id="friendList" class="mt-3 max-h-52 overflow-y-auto px-4 pb-24">
+        <div class="space-y-2">
+          <label class="friend-option flex cursor-pointer items-center gap-3 rounded-2xl bg-gray-100 px-3 py-3" data-friend-name="{{ request.user.username }} (me)">
+            <input type="checkbox" name="receivers" value="{{ request.user.id }}" class="receiver-checkbox hidden" data-recipient-kind="self" />
+            <div class="h-11 w-11 flex-shrink-0 overflow-hidden rounded-full bg-gray-200">
+              {% if request.user.profile_pic %}
+                <img src="{{ request.user.profile_pic.url }}" alt="{{ request.user.username }}" class="h-full w-full object-cover" />
+              {% else %}
+                <div class="flex h-full w-full items-center justify-center bg-black text-sm font-black text-[#fffc00]">{{ request.user.username|first|upper }}</div>
+              {% endif %}
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-extrabold">Me</p>
+              <p class="friend-subtitle text-xs font-semibold text-gray-500">Save this snap to yourself</p>
+            </div>
+
+            <span class="check-dot flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-black text-xs text-[#fffc00]"><i class="fa-solid fa-check"></i></span>
+          </label>
+
+          {% for friend in friends %}
+            <label class="friend-option flex cursor-pointer items-center gap-3 rounded-2xl bg-gray-100 px-3 py-3" data-friend-name="{{ friend.username }}">
+              {% if selected_friend_id and friend.id == selected_friend_id %}
+                <input type="checkbox" name="receivers" value="{{ friend.id }}" class="receiver-checkbox hidden" data-recipient-kind="friend" checked />
+              {% else %}
+                <input type="checkbox" name="receivers" value="{{ friend.id }}" class="receiver-checkbox hidden" data-recipient-kind="friend" />
+              {% endif %}
+              <div class="h-11 w-11 flex-shrink-0 overflow-hidden rounded-full bg-gray-200">
+                {% if friend.profile_pic %}
+                  <img src="{{ friend.profile_pic.url }}" alt="{{ friend.username }}" class="h-full w-full object-cover" />
+                {% else %}
+                  <div class="flex h-full w-full items-center justify-center bg-[#fffc00] text-sm font-black text-black">{{ friend.username|first|upper }}</div>
+                {% endif %}
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-extrabold">{{ friend.username }}</p>
+                <p class="friend-subtitle text-xs font-semibold text-gray-500">Tap to add recipient</p>
+              </div>
+
+              <span class="check-dot flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-black text-xs text-[#fffc00]"><i class="fa-solid fa-check"></i></span>
+            </label>
+          {% empty %}
+            <p class="rounded-2xl bg-gray-100 px-4 py-5 text-center text-sm font-semibold text-gray-500">No friends available yet</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="absolute bottom-0 left-0 right-0 bg-white px-4 pb-4 pt-3">
+        <button id="send" type="button" class="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#fffc00] text-sm font-black text-black transition active:scale-[.98] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500">
+          <span id="sendLabel">Send Snap</span>
           <i class="fa-solid fa-paper-plane"></i>
         </button>
       </div>
-    {% else %}
-      <section id="sendPanel" class="send-panel absolute bottom-0 left-0 right-0 z-30 max-h-[50%] rounded-t-[28px] bg-white text-black shadow-2xl">
-        <div class="mx-auto mt-2 h-1.5 w-12 rounded-full bg-gray-300"></div>
-
-        <div class="px-4 pt-3">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <h2 class="text-lg font-black leading-tight">Send To</h2>
-              <p id="selectedCount" class="text-xs font-semibold text-gray-500">Choose friends for this snap</p>
-            </div>
-
-            <button id="select-all" type="button" class="rounded-full bg-gray-100 px-3 py-2 text-xs font-extrabold text-gray-700">Select all</button>
-          </div>
-
-          <div id="selectedChips" class="mt-3 flex min-h-8 gap-2 overflow-x-auto"></div>
-        </div>
-
-        <div id="friendList" class="mt-3 max-h-52 overflow-y-auto px-4 pb-24">
-          <div class="space-y-2">
-            {% for friend in friends %}
-              <label class="friend-option flex cursor-pointer items-center gap-3 rounded-2xl bg-gray-100 px-3 py-3" data-friend-name="{{ friend.username }}">
-                {% if selected_friend_id and friend.id == selected_friend_id %}
-                  <input type="checkbox" name="receivers" value="{{ friend.id }}" class="receiver-checkbox hidden" checked />
-                {% else %}
-                  <input type="checkbox" name="receivers" value="{{ friend.id }}" class="receiver-checkbox hidden" />
-                {% endif %}
-                <div class="h-11 w-11 flex-shrink-0 overflow-hidden rounded-full bg-gray-200">
-                  {% if friend.profile_pic %}
-                    <img src="{{ friend.profile_pic.url }}" alt="{{ friend.username }}" class="h-full w-full object-cover" />
-                  {% else %}
-                    <div class="flex h-full w-full items-center justify-center bg-[#fffc00] text-sm font-black text-black">{{ friend.username|first|upper }}</div>
-                  {% endif %}
-                </div>
-
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-extrabold">{{ friend.username }}</p>
-                  <p class="friend-subtitle text-xs font-semibold text-gray-500">Tap to add recipient</p>
-                </div>
-
-                <span class="check-dot flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-black text-xs text-[#fffc00]"><i class="fa-solid fa-check"></i></span>
-              </label>
-            {% empty %}
-              <p class="rounded-2xl bg-gray-100 px-4 py-5 text-center text-sm font-semibold text-gray-500">No friends available</p>
-            {% endfor %}
-          </div>
-        </div>
-
-        <div class="absolute bottom-0 left-0 right-0 bg-white px-4 pb-4 pt-3">
-          <button id="send" type="button" class="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#fffc00] text-sm font-black text-black transition active:scale-[.98] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500">
-            <span id="sendLabel">Send Snap</span>
-            <i class="fa-solid fa-paper-plane"></i>
-          </button>
-        </div>
-      </section>
-    {% endif %}
+    </section>
   </div>
 
   <script>
@@ -276,7 +277,8 @@
     const send = document.getElementById('send')
     const sendLabel = document.getElementById('sendLabel')
     const sendPanel = document.getElementById('sendPanel')
-    const directSendDock = document.getElementById('directSendDock')
+    const previewSendDock = document.getElementById('previewSendDock')
+    const openSendPanel = document.getElementById('openSendPanel')
     const statusBox = document.getElementById('status')
     const caption = document.getElementById('caption')
     const captionWrap = document.getElementById('captionWrap')
@@ -286,11 +288,14 @@
     const filterStrip = document.getElementById('filterStrip')
     const captureDock = document.getElementById('captureDock')
     const receiverCheckboxes = Array.from(document.querySelectorAll('.receiver-checkbox'))
-    const isDirectSnap = {% if is_direct_snap %}true{% else %}false{% endif %}
+    const openDiskBtn = document.getElementById('open-disk-btn')
+    const imageInput = document.getElementById('image-input')
 
     let currentFilter = 'none'
     let currentEffect = 'none'
     let capturedBlob = null
+    let capturedFileName = 'snap.png'
+    let previewObjectUrl = null
 
     function getCSRFToken() {
       const inputToken = document.querySelector('[name=csrfmiddlewaretoken]')
@@ -311,6 +316,27 @@
     function clearStatus() {
       statusBox.classList.add('hidden')
       statusBox.textContent = ''
+    }
+
+    function showSnapPreview(blob, fileName) {
+      if (previewObjectUrl) {
+        URL.revokeObjectURL(previewObjectUrl)
+      }
+
+      capturedBlob = blob
+      capturedFileName = fileName || 'snap.png'
+      previewObjectUrl = URL.createObjectURL(blob)
+      preview.src = previewObjectUrl
+      preview.classList.remove('hidden')
+      video.classList.add('hidden')
+      captureDock.classList.add('hidden')
+      filterStrip.classList.add('hidden')
+      retake.classList.remove('hidden')
+      retake.classList.add('flex')
+      captionWrap.classList.remove('hidden')
+      previewSendDock.classList.remove('hidden')
+
+      updateSelectedFriends()
     }
 
     async function openWebCam() {
@@ -447,24 +473,26 @@
     function updateSelectedFriends() {
       const selected = receiverCheckboxes.filter((checkbox) => checkbox.checked)
 
-      if (isDirectSnap) {
-        return
-      }
-
       receiverCheckboxes.forEach((checkbox) => {
         const option = checkbox.closest('.friend-option')
         option.classList.toggle('is-selected', checkbox.checked)
         const subtitle = option.querySelector('.friend-subtitle')
-        subtitle.textContent = checkbox.checked ? 'Added to snap' : 'Tap to add recipient'
+        subtitle.textContent = checkbox.checked
+          ? 'Added to snap'
+          : checkbox.dataset.recipientKind === 'self'
+            ? 'Save this snap to yourself'
+            : 'Tap to add recipient'
       })
 
       selectedCount.textContent = selected.length
-        ? `${selected.length} friend${selected.length === 1 ? '' : 's'} selected`
-        : 'Choose friends for this snap'
+        ? `${selected.length} recipient${selected.length === 1 ? '' : 's'} selected`
+        : 'Choose recipients for this snap'
 
-      selectAll.textContent = selected.length === receiverCheckboxes.length && receiverCheckboxes.length
+      const friendCheckboxes = receiverCheckboxes.filter((checkbox) => checkbox.dataset.recipientKind === 'friend')
+      const selectedFriends = friendCheckboxes.filter((checkbox) => checkbox.checked)
+      selectAll.textContent = selectedFriends.length === friendCheckboxes.length && friendCheckboxes.length
         ? 'Clear'
-        : 'Select all'
+        : 'All friends'
 
       selectedChips.innerHTML = ''
       selected.forEach((checkbox) => {
@@ -518,27 +546,53 @@
       drawEffect(context, canvas.width, canvas.height)
 
       canvas.toBlob((blob) => {
-        capturedBlob = blob
-        preview.src = URL.createObjectURL(blob)
-        preview.classList.remove('hidden')
-        video.classList.add('hidden')
-        captureDock.classList.add('hidden')
-        filterStrip.classList.add('hidden')
-        retake.classList.remove('hidden')
-        retake.classList.add('flex')
-        captionWrap.classList.remove('hidden')
-        if (isDirectSnap) {
-          directSendDock.classList.remove('hidden')
-        } else {
-          sendPanel.classList.add('is-open')
-        }
-        updateSelectedFriends()
+        showSnapPreview(blob, 'snap.png')
       }, 'image/png')
+    })
+
+    openDiskBtn.addEventListener('click', () => {
+      clearStatus()
+      imageInput.click()
+    })
+
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files[0]
+
+      if (!file) {
+        return
+      }
+
+      if (!file.type.startsWith('image/')) {
+        showStatus('Choose an image file.', true)
+        imageInput.value = ''
+        return
+      }
+
+      showSnapPreview(file, file.name || 'snap-upload.png')
+      imageInput.value = ''
+    })
+
+    openSendPanel.addEventListener('click', () => {
+      clearStatus()
+
+      if (!capturedBlob) {
+        showStatus('Take a snap or choose an image first.', true)
+        return
+      }
+
+      sendPanel.classList.add('is-open')
+      previewSendDock.classList.add('hidden')
+      updateSelectedFriends()
     })
 
     retake.addEventListener('click', () => {
       clearStatus()
       capturedBlob = null
+      capturedFileName = 'snap.png'
+      if (previewObjectUrl) {
+        URL.revokeObjectURL(previewObjectUrl)
+        previewObjectUrl = null
+      }
       preview.src = ''
       preview.classList.add('hidden')
       video.classList.remove('hidden')
@@ -547,19 +601,17 @@
       retake.classList.add('hidden')
       retake.classList.remove('flex')
       captionWrap.classList.add('hidden')
-      if (isDirectSnap) {
-        directSendDock.classList.add('hidden')
-      } else {
-        sendPanel.classList.remove('is-open')
-      }
+      previewSendDock.classList.add('hidden')
+      sendPanel.classList.remove('is-open')
       send.disabled = false
-      sendLabel.textContent = isDirectSnap ? 'Send to {{ direct_friend.username|default:"friend" }}' : 'Send Snap'
+      sendLabel.textContent = 'Send Snap'
     })
 
     if (selectAll) {
       selectAll.addEventListener('click', () => {
-        const shouldSelect = receiverCheckboxes.some((checkbox) => !checkbox.checked)
-        receiverCheckboxes.forEach((checkbox) => {
+        const friendCheckboxes = receiverCheckboxes.filter((checkbox) => checkbox.dataset.recipientKind === 'friend')
+        const shouldSelect = friendCheckboxes.some((checkbox) => !checkbox.checked)
+        friendCheckboxes.forEach((checkbox) => {
           checkbox.checked = shouldSelect
         })
         updateSelectedFriends()
@@ -570,18 +622,21 @@
       clearStatus()
 
       if (!capturedBlob) {
-        showStatus('Take a snap first.', true)
+        showStatus('Take a snap or choose an image first.', true)
         return
       }
 
       const selectedReceivers = receiverCheckboxes.filter((checkbox) => checkbox.checked)
       if (selectedReceivers.length === 0) {
-        showStatus('Choose at least one friend.', true)
+        showStatus('Choose at least one recipient.', true)
         return
       }
 
       const formData = new FormData()
-      formData.append('image', new File([capturedBlob], 'snap.png', { type: 'image/png' }))
+      const snapFile = capturedBlob instanceof File
+        ? capturedBlob
+        : new File([capturedBlob], capturedFileName, { type: capturedBlob.type || 'image/png' })
+      formData.append('image', snapFile)
       formData.append('caption', caption.value.trim())
       selectedReceivers.forEach((checkbox) => {
         formData.append('receivers', checkbox.value)
@@ -606,7 +661,7 @@
           throw new Error(data.error || 'Snap could not be sent.')
         }
 
-        showStatus(`Sent to ${data.receiver_count} friend${data.receiver_count === 1 ? '' : 's'}.`)
+        showStatus(`Sent to ${data.receiver_count} recipient${data.receiver_count === 1 ? '' : 's'}.`)
         sendLabel.textContent = 'Sent'
         window.setTimeout(() => {
           retake.click()

@@ -401,16 +401,16 @@ def send_snap(request):
         return JsonResponse({"error": "image not found"}, status=400)
 
     if not receiver_ids:
-        return JsonResponse({"error": "select at least one friend"}, status=400)
+        return JsonResponse({"error": "select at least one recipient"}, status=400)
 
-    receivers = get_user_model().objects.filter(id__in=receiver_ids).exclude(id=request.user.id)
+    receivers = get_user_model().objects.filter(id__in=receiver_ids)
     valid_receivers = [
         receiver for receiver in receivers
-        if are_friends(request.user, receiver)
+        if receiver == request.user or are_friends(request.user, receiver)
     ]
 
     if not valid_receivers:
-        return JsonResponse({"error": "no valid friends selected"}, status=400)
+        return JsonResponse({"error": "no valid recipients selected"}, status=400)
 
     broadcast_messages = []
 
@@ -427,6 +427,9 @@ def send_snap(request):
         ])
 
         for receiver in valid_receivers:
+            if receiver == request.user:
+                continue
+
             conversation = (
                 Conversation.objects
                 .filter(participants=request.user)
