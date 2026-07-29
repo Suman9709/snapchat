@@ -167,7 +167,8 @@ def upload_snap(request):
         message.expires_at = timezone.now() + timedelta(hours=24)
         message.save()
         
-    # conversation.save()
+    conversation.updated_at = timezone.now()
+    conversation.save(update_fields=['updated_at'])
     
     return JsonResponse({
         'image':message.image.url,

@@ -1,4 +1,6 @@
 import json
+from json import JSONDecodeError
+
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from .models import Conversation, Message
@@ -7,7 +9,7 @@ from datetime import timedelta
 
 class ChatConsume(AsyncWebsocketConsumer):
     async def connect(self):
-        self.conversation_id =(self.scope['url_route']['kwargs']['conversation_id'])
+        self.conversation_id = self.scope["url_route"]["kwargs"]["conversation_id"]
         self.room_group_name = f'chat_{self.conversation_id}'
 
         if not self.scope['user'].is_authenticated:
@@ -36,84 +38,109 @@ class ChatConsume(AsyncWebsocketConsumer):
     
     
     async def receive(self, text_data):
-        data = json.loads(text_data)
+        try:
+            data = json.loads(text_data)
+        except JSONDecodeError:
+            return
 
         user = self.scope["user"]
         username = user.username
 
-    # Screenshot notification
         if data.get("screenshot"):
             text = f"{username} took a screenshot of the chat."
-
-            await self.save_message(text, is_system=True)
+            saved_message = await self.save_message(text, is_system=True)
 
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
-                 "type": "screenshot_notification",
+                    "type": "screenshot_notification",
                     "message": text,
                     "sender_id": user.id,
+                    "timestamp": saved_message["timestamp"],
                 },
             )
             return
 
-    # Normal message
         message = data.get("message")
         image = data.get("image")
+        message_id = data.get("message_id")
 
-        if not message and not image:
-            return
-
-        if not image:
-         await self.save_message(message)
+        if message_id:
+            saved_message = await self.get_saved_message(message_id)
+            if not saved_message:
+                return
+        else:
+            if not message and not image:
+                return
+            saved_message = await self.save_message(message=message, image=image)
 
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 "type": "chat_message",
-                "message": message,
-                "image": image,
+                "message": saved_message["message"],
+                "image": saved_message["image"],
                 "username": username,
                 "sender_id": user.id,
-                "timestamp": timezone.localtime().strftime("%H:%M"),
+                "timestamp": saved_message["timestamp"],
+                "message_id": saved_message["id"],
+                "is_system": False,
             },
-     )
+        )
         
     async def chat_message(self, event):
-        message = event['message']
-        image = event['image']
-        username = event['username']
-        sender_id = event['sender_id']
-        timestamp = event['timestamp']
         await self.send(text_data=json.dumps({
-            'message': message,
-            'image':image,
-            'username': username,
-            'sender_id': sender_id,
-            'screenshot': event.get('screenshot'),
-            'timestamp': timestamp,
+            'message': event.get('message'),
+            'image': event.get('image'),
+            'username': event.get('username'),
+            'sender_id': event.get('sender_id'),
+            'timestamp': event.get('timestamp'),
+            'message_id': event.get('message_id'),
             'is_system': event.get('is_system', False),
-            
         }))
         
 
         
     @database_sync_to_async   
-    def save_message(self, message, is_system=False):
+    def save_message(self, message=None, image=None, is_system=False):
         conversation = Conversation.objects.get(id=self.conversation_id)
         
         chat_message = Message.objects.create(
             conversation=conversation,
             sender=self.scope['user'],
-            message=message,
-            is_system = is_system
+            image=image,
+            message=message or "",
+            is_system=is_system
         
         )
         if conversation.mode == Conversation.Mode.AFTER_24HR:
             chat_message.expires_at = timezone.now() + timedelta(hours=24)
             chat_message.save(update_fields=['expires_at'])
-
+        conversation.updated_at = timezone.now()
         conversation.save(update_fields=['updated_at'])
+        return self.serialize_message(chat_message)
+
+    @database_sync_to_async
+    def get_saved_message(self, message_id):
+        try:
+            message = Message.objects.select_related("sender").get(
+                id=message_id,
+                conversation_id=self.conversation_id,
+                sender=self.scope["user"],
+                is_system=False,
+            )
+        except Message.DoesNotExist:
+            return None
+
+        return self.serialize_message(message)
+
+    def serialize_message(self, message):
+        return {
+            "id": message.id,
+            "message": message.message,
+            "image": message.image.url if message.image else None,
+            "timestamp": timezone.localtime(message.created_at).strftime("%H:%M"),
+        }
 
     @database_sync_to_async
     def user_can_access_conversation(self):
@@ -130,6 +157,8 @@ class ChatConsume(AsyncWebsocketConsumer):
                 "screenshot": True,
                 "message": event["message"],
                 "sender_id": event["sender_id"],
+                "timestamp": event.get("timestamp"),
+                "is_system": True,
             }
         )
     )

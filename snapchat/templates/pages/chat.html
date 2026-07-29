@@ -79,7 +79,9 @@
 
                 {% if chat.last_message %}
                   <span class="text-xs text-gray-400">
-                    {% if chat.last_message.image %}
+                    {% if chat.last_message.is_system %}
+                      System notification
+                    {% elif chat.last_message.image %}
                       📷 Photo
                     {% else %}
                       {{ chat.last_message.message|truncatechars:25 }}

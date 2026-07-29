@@ -49,6 +49,15 @@
     <div id="messages" class="flex-1 min-h-0 overflow-y-auto scrollbar-none px-4 py-4 space-y-3">
       {% if messages %}
         {% for message in messages %}
+          {% if message.is_system %}
+            <div class="flex items-center justify-center my-4">
+              <div class="flex items-center gap-2 text-[11px] text-base-content/60">
+                <span class="h-px w-12 bg-base-300"></span>
+                <span>System: {{ message.message }}</span>
+                <span class="h-px w-12 bg-base-300"></span>
+              </div>
+            </div>
+          {% else %}
           <div class="chat 
             {% if message.sender == request.user %}
               
@@ -128,6 +137,7 @@
               </button>
             {% endif %}
           </div>
+          {% endif %}
         {% endfor %}
       {% else %}
         <!-- Empty Chat State -->
@@ -211,18 +221,19 @@
       imagePreview.src = URL.createObjectURL(file)
     }
     
-    const snapButtons = document.querySelectorAll('.snap-open')
-    
     const snapViewer = document.getElementById('snapViewer')
     const snapImage = document.getElementById('snapImage')
     const closeSnap = document.getElementById('closeSnap')
     
-    snapButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        snapImage.src = button.dataset.image
+    function openSnap(imageUrl) {
+      snapImage.src = imageUrl
+      snapViewer.classList.remove('hidden')
+    }
     
-        snapViewer.classList.remove('hidden')
-      })
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest('.snap-open')
+      if (!button) return
+      openSnap(button.dataset.image)
     })
     
     closeSnap.addEventListener('click', () => {
@@ -237,33 +248,56 @@
     const sendBtn = document.getElementById('send-btn')
     
     const socketProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    const socket = new WebSocket(socketProtocol + '://' + window.location.host + '/ws/chat/' + conversationId + '/')
-    
-    socket.onopen = function () {
-      console.log('WebSocket connected')
+    const socketUrl = socketProtocol + '://' + window.location.host + '/ws/chat/' + conversationId + '/'
+    let socket = null
+    let reconnectTimer = null
+
+    function connectSocket() {
+      if (socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.readyState)) {
+        return socket
+      }
+
+      socket = new WebSocket(socketUrl)
+
+      socket.onopen = function () {
+        console.log('WebSocket connected')
+        if (reconnectTimer) {
+          window.clearTimeout(reconnectTimer)
+          reconnectTimer = null
+        }
+      }
+
+      socket.onerror = function (error) {
+        console.log('WebSocket error:', error)
+      }
+
+      socket.onclose = function () {
+        console.log('WebSocket disconnected')
+        if (!reconnectTimer) {
+          reconnectTimer = window.setTimeout(connectSocket, 1000)
+        }
+      }
+
+      socket.onmessage = handleSocketMessage
+
+      return socket
     }
-    
-    socket.onerror = function (error) {
-      console.log('WebSocket error:', error)
-    }
-    
-    socket.onclose = function () {
-      console.log('WebSocket disconnected')
-    }
-    
-    socket.onmessage = function (e) {
+
+    function handleSocketMessage(e) {
       console.log('Raw message:', e.data)
     
       const data = JSON.parse(e.data)
     
       console.log('Received:', data)
-      if (data.screenshot) {
-        addSystemMessage(data.message, data.sender_id === currentUserId)
+      if (data.is_system || data.screenshot) {
+        addSystemMessage(data.message)
         return
       }
     
       addMessage(data.username, data.message, data.timestamp, data.sender_id === currentUserId, data.image)
     }
+
+    connectSocket()
     
     function getCSRFToken() {
       const inputToken = document.querySelector('[name=csrfmiddlewaretoken]')
@@ -301,6 +335,10 @@
     }
     
     function waitForSocketOpen() {
+      if (!socket || [WebSocket.CLOSED, WebSocket.CLOSING].includes(socket.readyState)) {
+        connectSocket()
+      }
+
       if (socket.readyState === WebSocket.OPEN) {
         return Promise.resolve()
       }
@@ -364,7 +402,8 @@
         socket.send(
           JSON.stringify({
             message: imageData ? imageData.message : message,
-            image: imageData ? imageData.image : null
+            image: imageData ? imageData.image : null,
+            message_id: imageData ? imageData.id : null
           })
         )
     
@@ -408,10 +447,17 @@
       }
     
       if (image) {
-        const img = document.createElement('img')
-        img.src = image
-        img.className = 'rounded-lg max-w-48  object-cover'
-        messageWrapper.appendChild(img)
+        const snapButton = document.createElement('button')
+        snapButton.type = 'button'
+        snapButton.className = 'snap-open mt-2 w-32 h-12 rounded-2xl bg-purple-600 flex flex-col items-center justify-center gap-2 shadow-lg'
+        snapButton.dataset.image = image
+    
+        const label = document.createElement('span')
+        label.className = 'text-xs font-bold text-white'
+        label.textContent = 'Open Snap'
+        snapButton.appendChild(label)
+    
+        messageWrapper.appendChild(snapButton)
       }
     
       messageWrapper.prepend(header)
@@ -427,6 +473,25 @@
       const wrapper = document.createElement('div')
     
       wrapper.className = 'flex items-center justify-center my-4'
+
+      const notice = document.createElement('div')
+      notice.className = 'flex items-center gap-2 text-[11px] text-base-content/60'
+
+      const beforeLine = document.createElement('span')
+      beforeLine.className = 'h-px w-12 bg-base-300'
+
+      const text = document.createElement('span')
+      text.textContent = `System: ${message}`
+
+      const afterLine = document.createElement('span')
+      afterLine.className = 'h-px w-12 bg-base-300'
+
+      notice.append(beforeLine, text, afterLine)
+      wrapper.appendChild(notice)
+
+      messages.appendChild(wrapper)
+      messages.scrollTop = messages.scrollHeight
+      return
     
       wrapper.innerHTML = `
         <div class="flex items-center gap-2 text-[11px] text-base-content/60">
