@@ -33,33 +33,51 @@ class ChatConsume(AsyncWebsocketConsumer):
             )
         print("Disconnected ")
     
+    
+    
     async def receive(self, text_data):
-        text_data_json = json.loads(text_data) # convert data in to python object
-        message = text_data_json.get('message')
-        image = text_data_json.get('image')
-        
-        
-        if not message and not image:
-            return  # Ignore empty messages or missing username
-        user = self.scope['user']
-        username = user.username
-        
-        if not image:
-            await self.save_message(message)
+        data = json.loads(text_data)
 
-        
+        user = self.scope["user"]
+        username = user.username
+
+    # Screenshot notification
+        if data.get("screenshot"):
+            text = f"{username} took a screenshot of the chat."
+
+            await self.save_message(text, is_system=True)
+
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                 "type": "screenshot_notification",
+                    "message": text,
+                    "sender_id": user.id,
+                },
+            )
+            return
+
+    # Normal message
+        message = data.get("message")
+        image = data.get("image")
+
+        if not message and not image:
+            return
+
+        if not image:
+         await self.save_message(message)
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 "type": "chat_message",
                 "message": message,
-                "image":image,
+                "image": image,
                 "username": username,
                 "sender_id": user.id,
                 "timestamp": timezone.localtime().strftime("%H:%M"),
-                
             },
-        )
+     )
         
     async def chat_message(self, event):
         message = event['message']
@@ -72,17 +90,23 @@ class ChatConsume(AsyncWebsocketConsumer):
             'image':image,
             'username': username,
             'sender_id': sender_id,
+            'screenshot': event.get('screenshot'),
             'timestamp': timestamp,
+            'is_system': event.get('is_system', False),
+            
         }))
         
+
+        
     @database_sync_to_async   
-    def save_message(self, message):
+    def save_message(self, message, is_system=False):
         conversation = Conversation.objects.get(id=self.conversation_id)
         
         chat_message = Message.objects.create(
             conversation=conversation,
             sender=self.scope['user'],
             message=message,
+            is_system = is_system
         
         )
         if conversation.mode == Conversation.Mode.AFTER_24HR:
@@ -97,3 +121,15 @@ class ChatConsume(AsyncWebsocketConsumer):
             id=self.conversation_id,
             participants=self.scope['user'],
         ).exists()
+
+
+    async def screenshot_notification(self, event):
+        await self.send(
+        text_data=json.dumps(
+            {
+                "screenshot": True,
+                "message": event["message"],
+                "sender_id": event["sender_id"],
+            }
+        )
+    )

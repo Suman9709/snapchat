@@ -97,6 +97,8 @@ if CHANNEL_LAYER_BACKEND == "redis":
                         int(os.getenv("REDIS_PORT", "6379")),
                     )
                 ],
+                "expiry":60,
+                "capacity": 1500,
             },
         },
     }

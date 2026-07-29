@@ -33,5 +33,5 @@ urlpatterns = [
   path('accept-request/<int:id>/', views.accept_request,name='accept-request'),
     path('upload-snap/', views.upload_snap, name='upload_snap'),
     path('send-snap/', views.send_snap, name='send-snap'),
-    # path('send_message/<int:id>/', views, name='send-message'),
+
 ]
