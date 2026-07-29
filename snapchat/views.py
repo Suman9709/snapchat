@@ -7,7 +7,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib.auth import login, logout, get_user_model
 
 from django.contrib.auth.decorators import login_required
-from .models import FriendRequest, Conversation, Message, Snap, SnapReceiver
+from .models import FriendRequest, Conversation, Message, Snap, SnapReceiver, UserLocation
 from django.db.models import Q
 from django.http import JsonResponse
 import json
@@ -472,10 +472,30 @@ def send_snap(request):
         "receiver_count": len(valid_receivers),
     })
     
+@login_required
 def snap_map(request):
     return render(request, "pages/snapmap.html")
 
 
+@login_required
+@require_http_methods(["POST"])
 def update_location(request):
-    data = json.loads(request.body)
+    try:
+        data = json.loads(request.body)
+        latitude = float(data.get("latitude"))
+        longitude = float(data.get("longitude"))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse({"error": "invalid location"}, status=400)
+
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        return JsonResponse({"error": "invalid location"}, status=400)
+
+    UserLocation.objects.update_or_create(
+        user=request.user,
+        defaults={
+            "latitude": latitude,
+            "longitude": longitude,
+        },
+    )
+
     return JsonResponse({"status": "success"})

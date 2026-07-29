@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from django.contrib.auth.admin import UserAdmin
 
-from snapchat.models import Conversation, FriendRequest, Message, SnapUser
+from snapchat.models import Conversation, FriendRequest, Message, SnapUser, UserLocation
 
 # Register your models here.
 
@@ -16,4 +16,5 @@ admin.site.register(FriendRequest)
 admin.site.register(Conversation)
 admin.site.register(Message)
 admin.site.register(SnapUser)
+admin.site.register(UserLocation)
 

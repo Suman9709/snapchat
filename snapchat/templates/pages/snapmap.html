@@ -12,6 +12,58 @@
     <a href="{% url 'home' %}" class="absolute top-4 left-4 z-10 flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-lg text-gray-700 hover:bg-gray-100"><i class="fa-solid fa-chevron-left"></i></a>
   </div>
 
+  <style>
+    .snap-map-marker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transform: translateY(-8px);
+    }
+
+    .snap-map-avatar {
+      width: 42px;
+      height: 42px;
+      border: 3px solid white;
+      border-radius: 999px;
+      background: #facc15;
+      box-shadow: 0 6px 18px rgb(0 0 0 / 28%);
+      color: #111827;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+      overflow: hidden;
+    }
+
+    .snap-map-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .snap-map-label {
+      max-width: 92px;
+      border-radius: 999px;
+      background: white;
+      box-shadow: 0 4px 12px rgb(0 0 0 / 18%);
+      color: #111827;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      padding: 5px 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .snap-map-marker.is-me .snap-map-avatar {
+      background: #22c55e;
+      color: white;
+    }
+  </style>
+
   <script>
     const map = new maplibregl.Map({
       container: 'map',
@@ -35,70 +87,138 @@
       center: [77.5946, 12.9716],
       zoom: 15
     })
-    
-    let marker = null
-    
-    // Get CSRF token from cookie
-    function getCookie(name) {
-      let cookieValue = null
-    
-      if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';')
-    
-        for (let cookie of cookies) {
-          cookie = cookie.trim()
-    
-          if (cookie.startsWith(name + '=')) {
-            cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
-            break
-          }
-        }
+
+    const friendMarkers = new Map()
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+    const locationSocket = new WebSocket(`${protocol}://${window.location.host}/ws/location/`)
+    let myMarker = null
+    let hasCenteredOnMe = false
+
+    function createMarkerElement(location, isMe = false) {
+      const marker = document.createElement('div')
+      marker.className = `snap-map-marker${isMe ? ' is-me' : ''}`
+
+      const avatar = document.createElement('div')
+      avatar.className = 'snap-map-avatar'
+
+      if (location.profile_pic) {
+        const image = document.createElement('img')
+        image.src = location.profile_pic
+        image.alt = location.username || 'User'
+        avatar.appendChild(image)
+      } else {
+        avatar.textContent = (location.username || 'Me').charAt(0).toUpperCase()
       }
-    
-      return cookieValue
+
+      const label = document.createElement('div')
+      label.className = 'snap-map-label'
+      label.textContent = isMe ? 'Me' : location.username
+
+      marker.appendChild(avatar)
+      marker.appendChild(label)
+      return marker
     }
-    
-    const csrftoken = getCookie('csrftoken')
-    
-    navigator.geolocation.watchPosition(
-      function (position) {
-        const lat = position.coords.latitude
-        const lng = position.coords.longitude
-    
-        if (marker === null) {
-          marker = new maplibregl.Marker({ color: 'red' }).setLngLat([lng, lat]).addTo(map)
-        } else {
-          marker.setLngLat([lng, lat])
-        }
-    
-        map.setCenter([lng, lat])
-    
-        fetch('/update-location/', {
-          method: 'POST',
-    
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrftoken
-          },
-    
-          body: JSON.stringify({
-            latitude: lat,
-            longitude: lng
-          })
+
+    function updateMyMarker(latitude, longitude) {
+      const position = [longitude, latitude]
+
+      if (!myMarker) {
+        myMarker = new maplibregl.Marker({
+          element: createMarkerElement({
+            username: 'Me',
+            profile_pic: {% if request.user.profile_pic %}'{{ request.user.profile_pic.url|escapejs }}'{% else %}null{% endif %}
+          }, true)
         })
-          .then((response) => response.json())
-          .then((data) => console.log(data))
-          .catch((error) => console.error(error))
-      },
-    
-      function (error) {
-        console.error(error)
-      },
-    
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0
+          .setLngLat(position)
+          .addTo(map)
+      } else {
+        myMarker.setLngLat(position)
       }
-    )
+
+      if (!hasCenteredOnMe) {
+        map.flyTo({
+          center: position,
+          zoom: 16,
+          essential: true
+        })
+        hasCenteredOnMe = true
+      }
+    }
+
+    function updateFriendMarker(location) {
+      const latitude = Number(location.latitude)
+      const longitude = Number(location.longitude)
+      const userId = Number(location.user_id)
+
+      if (!userId || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+        return
+      }
+
+      const position = [longitude, latitude]
+      const currentMarker = friendMarkers.get(userId)
+
+      if (currentMarker) {
+        currentMarker.setLngLat(position)
+        return
+      }
+
+      const marker = new maplibregl.Marker({
+        element: createMarkerElement(location)
+      })
+        .setLngLat(position)
+        .addTo(map)
+
+      friendMarkers.set(userId, marker)
+    }
+
+    function startLocationSharing() {
+      if (!navigator.geolocation) {
+        return
+      }
+
+      navigator.geolocation.watchPosition(
+        (position) => {
+          const latitude = position.coords.latitude
+          const longitude = position.coords.longitude
+
+          updateMyMarker(latitude, longitude)
+
+          if (locationSocket.readyState === WebSocket.OPEN) {
+            locationSocket.send(
+              JSON.stringify({
+                type: 'update_location',
+                latitude,
+                longitude
+              })
+            )
+          }
+        },
+        (error) => {
+          console.warn('Location unavailable:', error)
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 30000,
+          timeout: 10000
+        }
+      )
+    }
+
+    locationSocket.addEventListener('open', () => {
+      locationSocket.send(JSON.stringify({ type: 'get_friend_locations' }))
+      startLocationSharing()
+    })
+
+    locationSocket.addEventListener('message', (event) => {
+      const data = JSON.parse(event.data)
+
+      if (data.type === 'friends_locations') {
+        data.locations.forEach(updateFriendMarker)
+      }
+
+      if (data.type === 'location') {
+        updateFriendMarker(data)
+      }
+    })
   </script>
 {% endblock %}

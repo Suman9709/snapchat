@@ -8,6 +8,20 @@ class SnapUser(AbstractUser):
     profile_pic = models.ImageField(upload_to='profile_pics', blank=True, null=True)
     bio = models.CharField(max_length=256, blank=True, null=True)
 
+
+class UserLocation(models.Model):
+    user = models.OneToOneField(
+        get_user_model(),
+        on_delete=models.CASCADE,
+        related_name='location',
+    )
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username}: {self.latitude}, {self.longitude}"
+
 class FriendRequest(models.Model):
     class StatusChoices(models.TextChoices):
         PENDING = 'PENDING', 'Pending'
