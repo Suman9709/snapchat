@@ -28,6 +28,7 @@ urlpatterns = [
     
     path('chat/<int:id>/settings/',views.chat_setting,name='chat-settings'),
     path('chat/<int:id>/settings/update/',views.update_chat_settings,name='update-chat-settings'),
+    path('chat/<int:id>/old-messages/', views.load_old_message, name = 'load-old-messages'),
     # path('chat/<int:id>/delete/', views.delete_conversation, name = 'delete-conversation'),
     
     

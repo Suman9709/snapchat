@@ -1,5 +1,6 @@
 
 from django.shortcuts import redirect, render, get_object_or_404
+from django.core.paginator import Paginator
 from .form import RegisterForm, LoginForm
 
 from django.views.decorators.http import require_http_methods
@@ -123,13 +124,55 @@ def chat(request, id):
         conversation = Conversation.objects.create()
         conversation.participants.add(request.user, friend)
 
-    messages = conversation.messages.select_related('sender').order_by('created_at')
+    messages = conversation.messages.select_related('sender').order_by('-created_at')[:10]
+    messages = reversed(messages) # Reverse the order to show the latest messages at the bottom
+    # paginator = Paginator(messages, 20)
+    # page_number = request.GET.get('page', 1)
+    # page_obj = paginator.get_page(page_number)
 
     return render(request, 'pages/chat-details.html', {
         'friend': friend,
         'conversation': conversation,
         'messages': messages,
+        
     })
+    
+@login_required   
+def load_old_message(request, id):
+    friend = get_object_or_404(get_user_model(), pk = id)
+    conversation = Conversation.objects.filter(participants = request.user).filter(participants = friend).distinct().first()
+
+    if not conversation:
+        return JsonResponse({
+           "messages": [],
+           "has_more": False
+        })
+    # load last page
+    before = request.GET.get('before')
+    
+    messages = conversation.messages.select_related('sender')
+    
+    if before:
+        messages = messages.filter(created_at__lt=before)
+    
+    messages = messages.order_by('-created_at')[:10]
+    
+    message = []
+    
+    for msg in reversed(messages):
+        message.append({
+            "id": msg.id,
+            "sender": msg.sender.username,
+            "sender_id": msg.sender.id,
+            "message": msg.message,
+            "image": msg.image.url if msg.image else None,
+            "created_at": msg.created_at.isoformat(),
+        })
+    return JsonResponse({  
+        "messages": message,
+        "has_more": len(message) == 10    
+    })
+   
     
 @require_http_methods(["POST"])
 @login_required

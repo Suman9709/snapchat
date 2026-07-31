@@ -18,7 +18,6 @@
               {% endif %}
             </div>
           </div>
-
           <div>
             <h2 class="text-lg font-semibold">{{ friend.username }}</h2>
 
@@ -36,76 +35,49 @@
 
     <!-- Messages -->
 
-    <div id="messages" class="flex-1 min-h-0 overflow-y-auto scrollbar-none px-4 py-4 space-y-3">
+    <div id="messages"data-friend="{{ friend.id }}" class="flex-1 min-h-0 overflow-y-auto scrollbar-none px-4 py-4 space-y-3">
       {% if messages %}
         {% for message in messages %}
-          {% if message.is_system %}
-            <div class="flex items-center justify-center my-4">
-              <div class="flex items-center gap-2 text-[11px] text-base-content/60">
-                <span class="h-px w-12 bg-base-300"></span>
-                <span>System: {{ message.message }}</span>
-                <span class="h-px w-12 bg-base-300"></span>
-              </div>
-            </div>
-          {% else %}
-            <div class="chat 
+          {% if message.is_system or "screenshot" in message.message|lower %}
+    <div class="system-message flex items-center justify-center my-4">
+
+        <div class="flex items-center gap-2 text-[11px] text-gray-400">
+
+            <span class="h-px w-12 bg-gray-300"></span>
+
+            <span>
+                {{ message.message }}
+            </span>
+
+            <span class="h-px w-12 bg-gray-300"></span>
+
+        </div>
+
+    </div>
+
+{% else %}
+            <div class="chat message-item 
             {% if message.sender == request.user %}
                 
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
+                
+          
               
                 chat-end
 
 
 
-
-
-
-
-
-
-
-
-
-
               {% else %}
                 
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
+                
+               
+               
                 chat-start
 
 
 
-
-
-
-
-
-
-
-
-
-
-              {% endif %}">
+              {% endif %}"
+              data-id="{{ message.id }}"
+              data-time="{{ message.created_at|date:'c' }}">
               <!-- Header -->
               <div class="chat-header">
                 {% if message.sender == request.user %}
@@ -188,8 +160,9 @@
       <button id="send-btn" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-400"><i class="fa-solid fa-paper-plane text-white"></i></button>
     </div>
   </div>
-
-  <script>
+  
+  
+<script>
     const imageInput = document.getElementById('image-input')
     const cameraBtn = document.getElementById('camera_btn')
     const imagePath = document.getElementById('image-path')
@@ -236,10 +209,18 @@
       snapImage.src = ''
     })
     
+    {% comment %} const oldestMessage = document.querySelector('.message-item')
+    if (oldestMessage) {
+      console.log(oldestMessage.dataset.time)
+    } {% endcomment %}
+    
     const conversationId = '{{ conversation.id }}'
     const currentUserId = Number('{{ request.user.id }}')
     const messages = document.getElementById('messages')
     const sendBtn = document.getElementById('send-btn')
+    
+    let loadingOldMessages = false
+    let hasMoreMessages = true
     
     const socketProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
     const socketUrl = socketProtocol + '://' + window.location.host + '/ws/chat/' + conversationId + '/'
@@ -283,10 +264,12 @@
       const data = JSON.parse(e.data)
     
       console.log('Received:', data)
-      if (data.is_system || data.screenshot) {
-        addSystemMessage(data.message)
-        return
-      }
+     if (data.screenshot) {
+    addSystemMessage(
+        `${data.username} took a screenshot`
+    )
+    return
+    }
     
       addMessage(data.username, data.message, data.timestamp, data.sender_id === currentUserId, data.image)
     }
@@ -422,7 +405,8 @@
       }
     
       const messageWrapper = document.createElement('div')
-      messageWrapper.className = `chat ${isOwnMessage ? 'chat-end' : 'chat-start'}`
+      messageWrapper.className = `chat message-item ${isOwnMessage ? 'chat-end' : 'chat-start'}`
+      messageWrapper.dataset.time = timestamp
     
       const header = document.createElement('div')
       header.className = 'chat-header'
@@ -461,45 +445,195 @@
     }
     
     function addSystemMessage(message) {
-      const emptyChat = document.getElementById('emptyChat')
-      if (emptyChat) emptyChat.remove()
-    
-      const wrapper = document.createElement('div')
-    
-      wrapper.className = 'flex items-center justify-center my-4'
-    
-      const notice = document.createElement('div')
-      notice.className = 'flex items-center gap-2 text-[11px] text-base-content/60'
-    
-      const beforeLine = document.createElement('span')
-      beforeLine.className = 'h-px w-12 bg-base-300'
-    
-      const text = document.createElement('span')
-      text.textContent = `System: ${message}`
-    
-      const afterLine = document.createElement('span')
-      afterLine.className = 'h-px w-12 bg-base-300'
-    
-      notice.append(beforeLine, text, afterLine)
-      wrapper.appendChild(notice)
-    
-      messages.appendChild(wrapper)
-      messages.scrollTop = messages.scrollHeight
-      return
-    
-      wrapper.innerHTML = `
-            <div class="flex items-center gap-2 text-[11px] text-base-content/60">
-              <span class="h-px w-12 bg-base-300"></span>
-              <span>📸 ${message}</span>
-              <span class="h-px w-12 bg-base-300"></span>
-            </div>
-          `
-    
-      messages.appendChild(wrapper)
-      messages.scrollTop = messages.scrollHeight
+    const emptyChat = document.getElementById('emptyChat')
+
+    if (emptyChat) {
+        emptyChat.remove()
+    }
+
+
+    const wrapper = document.createElement("div")
+
+    wrapper.className =
+        "flex items-center justify-center my-4"
+
+
+    const notification = document.createElement("div")
+
+    notification.className =
+        "flex items-center gap-2 text-[11px] text-base-content/60"
+
+
+    const leftLine = document.createElement("span")
+    leftLine.className =
+        "h-px w-12 bg-base-300"
+
+
+    const text = document.createElement("span")
+    text.textContent = `System: ${message}`
+
+
+    const rightLine = document.createElement("span")
+    rightLine.className =
+        "h-px w-12 bg-base-300"
+
+
+    notification.append(
+        leftLine,
+        text,
+        rightLine
+    )
+
+
+    wrapper.appendChild(notification)
+
+
+    messages.appendChild(wrapper)
+
+
+    messages.scrollTop = messages.scrollHeight
     }
     
     messages.scrollTop = messages.scrollHeight
+
+    messages.addEventListener("scroll", async()=>{
+      if(messages.scrollTop < 50 && hasMoreMessages && !loadingOldMessages){
+        loadingOldMessages = true
+
+        const firstMessage = messages.querySelector('.message-item')
+       if (!firstMessage) {
+
+       loadingOldMessages = false
+       return
+       }
+       const before = firstMessage.dataset.time
+
+       const previousHeight = messages.scrollHeight
+
+       try{
+       const friendId = messages.dataset.friend
+
+        const response = await fetch(`/chat/${friendId}/old-messages/?before=${encodeURIComponent(before)}`)
+        const data = await response.json()
+        //data.messages.forEach(msg => {
+          //addMessage(msg.username, msg.message, msg.created_at, msg.sender_id === currentUserId, msg.image)
+        //})
+
+        
+
+         data.messages.forEach(msg => {
+
+    if(
+    msg.message &&
+    msg.message.toLowerCase().includes("screenshot")  
+    ){
+
+    const systemDiv=document.createElement("div")
+
+    systemDiv.className =
+    "flex items-center justify-center my-4"
+
+
+    systemDiv.innerHTML = `
+
+    <div class="flex items-center gap-2 text-[11px] text-gray-400">
+
+        <span class="h-px w-12 bg-gray-300"></span>
+
+        <span>
+            ${msg.message}
+        </span>
+
+        <span class="h-px w-12 bg-gray-300"></span>
+
+    </div>
+
+    `
+    messages.insertBefore(
+        systemDiv,
+        messages.firstChild
+    )
+
+
+    return;
+
+    }
+    const messageDiv =
+    document.createElement("div")
+      messageDiv.className =`message-item chat
+                ${
+                    msg.sender_id === currentUserId
+                    ?
+                    "chat-end"
+                    :
+                    "chat-start"
+                }
+                `
+                messageDiv.dataset.id =msg.id
+                messageDiv.dataset.time =msg.created_at
+
+                const time =
+                    new Date(msg.created_at)
+                    .toLocaleTimeString([], {
+                        hour:"2-digit",
+                        minute:"2-digit"
+                    })
+
+                messageDiv.innerHTML = `
+
+                <div class="chat-header">
+                    ${
+                    msg.sender_id === currentUserId
+                    ?
+                    "You"
+                    :
+                    msg.sender
+                    }
+                    <time class="text-xs opacity-50 ml-2">
+                        ${time}
+                    </time>
+                </div>
+                ${
+                    msg.message
+                    ?
+                    `<div class="chat-bubble">
+                        ${msg.message}
+                    </div>
+                    `
+                    :
+                    ""
+                }
+                ${
+                    msg.image
+                    ?
+                    `
+                    <button 
+                    class="snap-open mt-2 w-32 h-12 rounded-2xl bg-purple-600 flex flex-col items-center justify-center gap-2 shadow-lg"
+                    data-image="${msg.image}">
+                    <span class="text-xs font-bold text-white">
+                        Open Snap
+                    </span>
+                    </button>
+                    `
+                    :
+                    ""
+                }
+                `
+                // add above existing messages
+                messages.insertBefore(messageDiv, messages.firstChild)
+            })
+            // Maintain scroll position
+            const newHeight =messages.scrollHeight
+            messages.scrollTop =newHeight - previousHeight
+            hasMoreMessages =data.has_more
+            loadingOldMessages = false
+          }
+              catch(error){
+                console.log( "Old message loading error:", error )
+                loadingOldMessges = false
+       } 
+      }
+    })
     
     function notifyScreenshot() {
       if (socket.readyState === WebSocket.OPEN) {
