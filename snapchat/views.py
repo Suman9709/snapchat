@@ -8,7 +8,7 @@ from django.contrib.auth import login, logout, get_user_model
 
 from django.contrib.auth.decorators import login_required
 from .models import FriendRequest, Conversation, Message, Snap, SnapReceiver, UserLocation
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.http import JsonResponse
 import json
 from .utils import are_friends
@@ -334,9 +334,10 @@ def user_profile(request):
     user = request.user
     snap_count = Message.objects.filter(sender = user, image__isnull=False).count()
     
-    active_streaks = request.user.conversations.filter(
-        streak__gt=0
-    ).count()
+    active_streaks = (request.user.conversations.aggregate(
+        max_streak=Max("streak")
+        )["max_streak"] or 0
+    )
     friend_count = FriendRequest.objects.filter(status=FriendRequest.StatusChoices.ACCEPTED).filter(models.Q(from_user = user) | Q(to_user = user)).count()
     
     return render(request, 'pages/profile.html', {'user':user, 'snap_count':snap_count,'friend_count':friend_count, 'active_streaks':active_streaks})
