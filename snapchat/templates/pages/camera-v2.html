@@ -187,11 +187,12 @@
       </div>
     </div>
 
-    <div id="previewSendDock" class="absolute bottom-5 left-0 right-0 z-30 hidden px-5">
+    <div id="previewSendDock" class="absolute bottom-5 left-0 right-0 z-30 hidden px-5 flex items-center justify-center gap-3">
       <button id="openSendPanel" type="button" class="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#fffc00] text-sm font-black text-black shadow-2xl transition active:scale-[.98]">
         <span>Send To</span>
         <i class="fa-solid fa-paper-plane"></i>
       </button>
+      <button id="download-btn" type="button" class="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-gray-200 text-sm font-black text-black shadow-2xl transition active:scale-[.98]"><i class="fa-solid fa-download"></i></button>
     </div>
 
     <section id="sendPanel" class="send-panel absolute bottom-0 left-0 right-0 z-30 max-h-[50%] rounded-t-[28px] bg-white text-black shadow-2xl">
@@ -290,19 +291,36 @@
     const receiverCheckboxes = Array.from(document.querySelectorAll('.receiver-checkbox'))
     const openDiskBtn = document.getElementById('open-disk-btn')
     const imageInput = document.getElementById('image-input')
+    const downloadBtn = document.getElementById('download-btn')
 
+    downloadBtn.addEventListener('click', () => {
+      if (!capturedBlob) {
+        showStatus('Take a snap or choose an image first.', true)
+        return
+      }
+
+      const url = URL.createObjectURL(capturedBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = capturedFileName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    })
+    
     let currentFilter = 'none'
     let currentEffect = 'none'
     let capturedBlob = null
     let capturedFileName = 'snap.png'
     let previewObjectUrl = null
-
+    
     function getCSRFToken() {
       const inputToken = document.querySelector('[name=csrfmiddlewaretoken]')
       const metaToken = document.querySelector('meta[name="csrf-token"]')
       return (inputToken && inputToken.value) || (metaToken && metaToken.content) || ''
     }
-
+    
     function showStatus(message, isError = false) {
       statusBox.textContent = message
       statusBox.classList.remove('hidden', 'bg-red-500', 'bg-[#fffc00]', 'text-black', 'text-white')
@@ -312,17 +330,17 @@
         statusBox.classList.add('hidden')
       }, 2600)
     }
-
+    
     function clearStatus() {
       statusBox.classList.add('hidden')
       statusBox.textContent = ''
     }
-
+    
     function showSnapPreview(blob, fileName) {
       if (previewObjectUrl) {
         URL.revokeObjectURL(previewObjectUrl)
       }
-
+    
       capturedBlob = blob
       capturedFileName = fileName || 'snap.png'
       previewObjectUrl = URL.createObjectURL(blob)
@@ -335,16 +353,16 @@
       retake.classList.add('flex')
       captionWrap.classList.remove('hidden')
       previewSendDock.classList.remove('hidden')
-
+    
       updateSelectedFriends()
     }
-
+    
     async function openWebCam() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         showStatus('Camera is not available in this browser.', true)
         return
       }
-
+    
       try {
         video.srcObject = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'user' },
@@ -354,70 +372,70 @@
         showStatus('Allow camera permission to take a snap.', true)
       }
     }
-
+    
     function drawSpark(context, width, height) {
       context.fillStyle = 'rgba(255, 252, 0, .78)'
       for (let index = 0; index < 18; index += 1) {
         const x = (width * ((index * 37) % 100)) / 100
         const y = (height * ((index * 23) % 75)) / 100
-        const size = Math.max(5, width * (index % 3 === 0 ? .018 : .011))
+        const size = Math.max(5, width * (index % 3 === 0 ? 0.018 : 0.011))
         context.beginPath()
         context.arc(x, y, size, 0, Math.PI * 2)
         context.fill()
       }
     }
-
+    
     function drawFrame(context, width, height) {
-      const inset = Math.max(16, width * .045)
+      const inset = Math.max(16, width * 0.045)
       context.strokeStyle = 'rgba(255, 252, 0, .9)'
-      context.lineWidth = Math.max(5, width * .014)
+      context.lineWidth = Math.max(5, width * 0.014)
       context.lineCap = 'round'
       context.strokeRect(inset, inset, width - inset * 2, height - inset * 2)
     }
-
+    
     function drawHeartShape(context, x, y, size) {
       context.save()
       context.translate(x, y)
       context.scale(size, size)
       context.beginPath()
-      context.moveTo(0, .32)
-      context.bezierCurveTo(-.72, -.18, -.42, -.78, 0, -.42)
-      context.bezierCurveTo(.42, -.78, .72, -.18, 0, .32)
+      context.moveTo(0, 0.32)
+      context.bezierCurveTo(-0.72, -0.18, -0.42, -0.78, 0, -0.42)
+      context.bezierCurveTo(0.42, -0.78, 0.72, -0.18, 0, 0.32)
       context.closePath()
       context.fillStyle = 'rgba(255, 45, 85, .92)'
       context.fill()
       context.restore()
     }
-
+    
     function drawHearts(context, width, height) {
-      const size = Math.max(38, width * .115)
-      drawHeartShape(context, width * .22, height * .18, size)
-      drawHeartShape(context, width * .78, height * .2, size * .92)
-      drawHeartShape(context, width * .5, height * .12, size * .76)
+      const size = Math.max(38, width * 0.115)
+      drawHeartShape(context, width * 0.22, height * 0.18, size)
+      drawHeartShape(context, width * 0.78, height * 0.2, size * 0.92)
+      drawHeartShape(context, width * 0.5, height * 0.12, size * 0.76)
     }
-
+    
     function drawDog(context, width, height) {
-      const centerX = width * .5
-      const topY = height * .16
-      const earSize = Math.max(42, width * .14)
-      const noseSize = Math.max(14, width * .035)
-
+      const centerX = width * 0.5
+      const topY = height * 0.16
+      const earSize = Math.max(42, width * 0.14)
+      const noseSize = Math.max(14, width * 0.035)
+    
       context.fillStyle = 'rgba(91, 55, 34, .92)'
       context.beginPath()
-      context.ellipse(centerX - earSize * 1.05, topY, earSize * .42, earSize * .78, -.45, 0, Math.PI * 2)
+      context.ellipse(centerX - earSize * 1.05, topY, earSize * 0.42, earSize * 0.78, -0.45, 0, Math.PI * 2)
       context.fill()
-
+    
       context.beginPath()
-      context.ellipse(centerX + earSize * 1.05, topY, earSize * .42, earSize * .78, .45, 0, Math.PI * 2)
+      context.ellipse(centerX + earSize * 1.05, topY, earSize * 0.42, earSize * 0.78, 0.45, 0, Math.PI * 2)
       context.fill()
-
+    
       context.fillStyle = 'rgba(40, 24, 16, .95)'
       context.beginPath()
-      context.ellipse(centerX, topY + earSize * .85, noseSize * 1.25, noseSize, 0, 0, Math.PI * 2)
+      context.ellipse(centerX, topY + earSize * 0.85, noseSize * 1.25, noseSize, 0, 0, Math.PI * 2)
       context.fill()
-
+    
       context.strokeStyle = 'rgba(40, 24, 16, .85)'
-      context.lineWidth = Math.max(3, width * .008)
+      context.lineWidth = Math.max(3, width * 0.008)
       context.lineCap = 'round'
       context.beginPath()
       context.moveTo(centerX, topY + earSize * 1.05)
@@ -426,74 +444,66 @@
       context.quadraticCurveTo(centerX + noseSize, topY + earSize * 1.25, centerX + noseSize * 1.8, topY + earSize * 1.15)
       context.stroke()
     }
-
+    
     function drawEffect(context, width, height) {
       if (currentEffect === 'heart') {
         drawHearts(context, width, height)
       }
-
+    
       if (currentEffect === 'dog') {
         drawDog(context, width, height)
       }
-
+    
       if (currentEffect === 'spark') {
         drawSpark(context, width, height)
       }
-
+    
       if (currentEffect === 'frame') {
         drawFrame(context, width, height)
       }
     }
-
+    
     function setOverlay() {
       overlay.innerHTML = ''
       overlay.classList.add('hidden')
-
+    
       if (currentEffect === 'spark') {
         overlay.classList.remove('hidden')
         overlay.innerHTML = '<div class="absolute left-[14%] top-[18%] h-4 w-4 rounded-full bg-[#fffc00]/80"></div><div class="absolute right-[16%] top-[23%] h-6 w-6 rounded-full bg-[#fffc00]/75"></div><div class="absolute left-[48%] top-[12%] h-3 w-3 rounded-full bg-[#fffc00]/90"></div><div class="absolute bottom-[34%] right-[20%] h-4 w-4 rounded-full bg-[#fffc00]/70"></div>'
       }
-
+    
       if (currentEffect === 'heart') {
         overlay.classList.remove('hidden')
         overlay.innerHTML = '<i class="fa-solid fa-heart absolute left-[18%] top-[14%] text-5xl text-pink-500 drop-shadow-lg"></i><i class="fa-solid fa-heart absolute right-[18%] top-[16%] text-5xl text-pink-500 drop-shadow-lg"></i><i class="fa-solid fa-heart absolute left-1/2 top-[9%] -translate-x-1/2 text-4xl text-pink-500 drop-shadow-lg"></i>'
       }
-
+    
       if (currentEffect === 'dog') {
         overlay.classList.remove('hidden')
         overlay.innerHTML = '<div class="absolute left-1/2 top-[10%] h-20 w-52 -translate-x-1/2"><div class="absolute left-2 top-0 h-20 w-12 -rotate-[24deg] rounded-full bg-[#5b3722]/90"></div><div class="absolute right-2 top-0 h-20 w-12 rotate-[24deg] rounded-full bg-[#5b3722]/90"></div><div class="absolute left-1/2 top-16 h-5 w-7 -translate-x-1/2 rounded-full bg-[#281810]"></div></div>'
       }
-
+    
       if (currentEffect === 'frame') {
         overlay.classList.remove('hidden')
         overlay.innerHTML = '<div class="absolute inset-5 rounded-[32px] border-4 border-[#fffc00]/90"></div>'
       }
     }
-
+    
     function updateSelectedFriends() {
       const selected = receiverCheckboxes.filter((checkbox) => checkbox.checked)
-
+    
       receiverCheckboxes.forEach((checkbox) => {
         const option = checkbox.closest('.friend-option')
         option.classList.toggle('is-selected', checkbox.checked)
         const subtitle = option.querySelector('.friend-subtitle')
-        subtitle.textContent = checkbox.checked
-          ? 'Added to snap'
-          : checkbox.dataset.recipientKind === 'self'
-            ? 'Save this snap to yourself'
-            : 'Tap to add recipient'
+        subtitle.textContent = checkbox.checked ? 'Added to snap' : checkbox.dataset.recipientKind === 'self' ? 'Save this snap to yourself' : 'Tap to add recipient'
       })
-
-      selectedCount.textContent = selected.length
-        ? `${selected.length} recipient${selected.length === 1 ? '' : 's'} selected`
-        : 'Choose recipients for this snap'
-
+    
+      selectedCount.textContent = selected.length ? `${selected.length} recipient${selected.length === 1 ? '' : 's'} selected` : 'Choose recipients for this snap'
+    
       const friendCheckboxes = receiverCheckboxes.filter((checkbox) => checkbox.dataset.recipientKind === 'friend')
       const selectedFriends = friendCheckboxes.filter((checkbox) => checkbox.checked)
-      selectAll.textContent = selectedFriends.length === friendCheckboxes.length && friendCheckboxes.length
-        ? 'Clear'
-        : 'All friends'
-
+      selectAll.textContent = selectedFriends.length === friendCheckboxes.length && friendCheckboxes.length ? 'Clear' : 'All friends'
+    
       selectedChips.innerHTML = ''
       selected.forEach((checkbox) => {
         const name = checkbox.closest('.friend-option').dataset.friendName
@@ -507,84 +517,84 @@
         selectedChips.appendChild(chip)
       })
     }
-
+    
     document.querySelectorAll('.filter').forEach((button) => {
       button.addEventListener('click', () => {
         currentFilter = button.dataset.filter
         currentEffect = button.dataset.effect
-
+    
         video.style.filter = currentFilter
         preview.style.filter = currentFilter
         setOverlay()
-
+    
         document.querySelectorAll('.filter').forEach((filterButton) => {
           filterButton.classList.remove('is-active')
         })
         button.classList.add('is-active')
       })
     })
-
+    
     receiverCheckboxes.forEach((checkbox) => {
       checkbox.addEventListener('change', updateSelectedFriends)
     })
-
+    
     capture.addEventListener('click', () => {
       clearStatus()
-
+    
       if (!video.videoWidth || !video.videoHeight) {
         showStatus('Camera is still loading.', true)
         return
       }
-
+    
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
-
+    
       const context = canvas.getContext('2d')
       context.filter = currentFilter
       context.drawImage(video, 0, 0, canvas.width, canvas.height)
       context.filter = 'none'
       drawEffect(context, canvas.width, canvas.height)
-
+    
       canvas.toBlob((blob) => {
         showSnapPreview(blob, 'snap.png')
       }, 'image/png')
     })
-
+    
     openDiskBtn.addEventListener('click', () => {
       clearStatus()
       imageInput.click()
     })
-
+    
     imageInput.addEventListener('change', () => {
       const file = imageInput.files[0]
-
+    
       if (!file) {
         return
       }
-
+    
       if (!file.type.startsWith('image/')) {
         showStatus('Choose an image file.', true)
         imageInput.value = ''
         return
       }
-
+    
       showSnapPreview(file, file.name || 'snap-upload.png')
       imageInput.value = ''
     })
-
+    
     openSendPanel.addEventListener('click', () => {
       clearStatus()
-
+    
       if (!capturedBlob) {
         showStatus('Take a snap or choose an image first.', true)
         return
       }
-
+    
       sendPanel.classList.add('is-open')
       previewSendDock.classList.add('hidden')
       updateSelectedFriends()
     })
-
+    
     retake.addEventListener('click', () => {
       clearStatus()
       capturedBlob = null
@@ -606,7 +616,7 @@
       send.disabled = false
       sendLabel.textContent = 'Send Snap'
     })
-
+    
     if (selectAll) {
       selectAll.addEventListener('click', () => {
         const friendCheckboxes = receiverCheckboxes.filter((checkbox) => checkbox.dataset.recipientKind === 'friend')
@@ -617,34 +627,32 @@
         updateSelectedFriends()
       })
     }
-
+    
     send.addEventListener('click', async () => {
       clearStatus()
-
+    
       if (!capturedBlob) {
         showStatus('Take a snap or choose an image first.', true)
         return
       }
-
+    
       const selectedReceivers = receiverCheckboxes.filter((checkbox) => checkbox.checked)
       if (selectedReceivers.length === 0) {
         showStatus('Choose at least one recipient.', true)
         return
       }
-
+    
       const formData = new FormData()
-      const snapFile = capturedBlob instanceof File
-        ? capturedBlob
-        : new File([capturedBlob], capturedFileName, { type: capturedBlob.type || 'image/png' })
+      const snapFile = capturedBlob instanceof File ? capturedBlob : new File([capturedBlob], capturedFileName, { type: capturedBlob.type || 'image/png' })
       formData.append('image', snapFile)
       formData.append('caption', caption.value.trim())
       selectedReceivers.forEach((checkbox) => {
         formData.append('receivers', checkbox.value)
       })
-
+    
       send.disabled = true
       sendLabel.textContent = 'Sending...'
-
+    
       try {
         const response = await fetch('{% url "send-snap" %}', {
           method: 'POST',
@@ -654,13 +662,13 @@
           },
           body: formData
         })
-
+    
         const data = await response.json()
-
+    
         if (!response.ok) {
           throw new Error(data.error || 'Snap could not be sent.')
         }
-
+    
         showStatus(`Sent to ${data.receiver_count} recipient${data.receiver_count === 1 ? '' : 's'}.`)
         sendLabel.textContent = 'Sent'
         window.setTimeout(() => {
@@ -673,7 +681,7 @@
         sendLabel.textContent = 'Send Snap'
       }
     })
-
+    
     updateSelectedFriends()
     openWebCam()
   </script>
