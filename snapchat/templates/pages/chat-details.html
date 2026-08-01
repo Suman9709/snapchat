@@ -699,19 +699,39 @@
     window.addEventListener('focus', loadNewMessages)
     
     function notifyScreenshot() {
-      if (hasNotifiedForOpenSnap || snapViewer.classList.contains('hidden')) {
-        return
-      }
 
-      if (socket.readyState === WebSocket.OPEN) {
+    console.log("notifyScreenshot called")
+
+   if (hasNotifiedForOpenSnap) {
+    console.log("blocked: already notified")
+    return
+}
+
+      //if (snapViewer.classList.contains('hidden')) {
+        //  console.log("blocked: viewer hidden")
+          //return
+     // }
+
+
+    console.log("Socket state:", socket.readyState)
+
+
+    if (socket.readyState === WebSocket.OPEN) {
+
         hasNotifiedForOpenSnap = true
-        socket.send(
-          JSON.stringify({
+
+        const payload = {
             screenshot: true
-          })
-        )
-      }
+        }
+
+        console.log("Sending:", payload)
+
+        socket.send(JSON.stringify(payload))
+
+    } else {
+        console.log("Socket not open")
     }
+}
     
     window.addEventListener('keydown', (e) => {
       if ((e.ctrlKey && e.shiftKey)) {
