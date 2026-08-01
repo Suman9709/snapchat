@@ -40,24 +40,19 @@
         {% for message in messages %}
           {% if message.is_system %}
             <div class="system-message message-item flex items-center justify-center my-4" data-id="{{ message.id }}" data-time="{{ message.created_at|date:'c' }}">
+              <div class="flex items-center gap-2 text-[11px] text-gray-400">
+                <span class="h-px w-12 bg-gray-300"></span>
 
-            <div class="flex items-center gap-2 text-[11px] text-gray-400">
+                <span>{{ message.message }}</span>
 
-            <span class="h-px w-12 bg-gray-300"></span>
-
-            <span>
-                {{ message.message }}
-            </span>
-
-            <span class="h-px w-12 bg-gray-300"></span>
-
+                <span class="h-px w-12 bg-gray-300"></span>
+              </div>
             </div>
-
-        </div>
-
           {% else %}
             <div class="chat message-item 
             {% if message.sender == request.user %}
+                
+                
                 
                 
           
@@ -66,12 +61,18 @@
 
 
 
+
+
               {% else %}
+                
+                
                 
                 
                
                
                 chat-start
+
+
 
 
 
@@ -95,24 +96,15 @@
               {% endif %}
 
               <!-- Snap Message -->
-             {% if message.image %}
-<div class="chat-bubble p-0 bg-transparent">
-    <button 
-        class="snap-open w-24 h-12 rounded-2xl 
-        bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600
-        flex items-center justify-center
-        shadow-sm"
-        data-image="{{ message.image.url }}"
-    >
-        <div class="flex flex-col items-center gap-1">
-            
-            <span class="text-white text-xs font-semibold">
-                Open Snap
-            </span>
-        </div>
-    </button>
-</div>
-{% endif %}
+              {% if message.image %}
+                <div class="chat-bubble p-0 bg-transparent">
+                  <button class="snap-open w-24 h-12 rounded-2xl bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center shadow-sm" data-image="{{ message.image.url }}">
+                    <div class="flex flex-col items-center gap-1">
+                      <span class="text-white text-xs font-semibold">Open Snap</span>
+                    </div>
+                  </button>
+                </div>
+              {% endif %}
             </div>
           {% endif %}
         {% endfor %}
@@ -164,16 +156,15 @@
     </div>
     {% comment %} <a href="{% url 'camera' %}"><i class="fa-solid fa-camera"></i></a> {% endcomment %}
     <div class="flex flex-shrink-0 items-center gap-3 p-4 shadow-sm">
-      <a href="{% url 'camera' %}" id="camera_btn"  class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black"><i class="fa-solid fa-camera text-white text-lg"></i></a>
+      <a href="{% url 'camera' %}" id="camera_btn" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black"><i class="fa-solid fa-camera text-white text-lg"></i></a>
       <div class="min-w-0 flex-1">
         <input id="message-input" type="text" placeholder="Send chat..." class="w-full rounded-full bg-gray-100 px-4 py-2 focus:outline-none" />
       </div>
       <button id="send-btn" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-400"><i class="fa-solid fa-paper-plane text-white"></i></button>
-    </div
+    </div>
   </div>
-  
-  
-<script>
+
+  <script>
       const imageInput = document.getElementById('image-input')
       const cameraBtn = document.getElementById('camera_btn')
       const imagePath = document.getElementById('image-path')

@@ -23,7 +23,19 @@
           <a href="{% url 'search' %}" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2"><i class="fa-solid fa-magnifying-glass"></i></a>
         </div>
 
-        <a href="{% url 'friend_request' %}" class="size-[32px] bg-yellow-300 flex justify-center items-center rounded-full p-2"><i class="fa-solid fa-user-plus"></i></a>
+        <a href="{% url 'friend_request' %}" class="relative size-[32px] bg-yellow-300 flex justify-center items-center rounded-full p-2">
+          <i class="fa-solid fa-user-plus"></i>
+
+          {% if pending_request_count >= 0 %}
+            <span class="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+              {% if pending_request_count > 99 %}
+                99+
+              {% else %}
+                {{ pending_request_count }}
+              {% endif %}
+            </span>
+          {% endif %}
+        </a>
 
         <div class="dropdown dropdown-end">
           <div tabindex="0" role="button" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2 cursor-pointer">

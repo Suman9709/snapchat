@@ -86,6 +86,7 @@ def home(request):
         ).filter(Q(from_user=request.user) | Q(to_user=request.user))
     chat_list = []
     
+    pending_request_count = FriendRequest.objects.filter(to_user = request.user , status = FriendRequest.StatusChoices.PENDING).count()
     for fr in friend_requests:
         if fr.from_user == request.user:
             friend = fr.to_user
@@ -96,6 +97,8 @@ def home(request):
             Conversation.objects.filter(participants = request.user).filter(participants = friend).first()
         
         )
+        
+       
         last_message = None
         if conversation:
             last_message = (
@@ -116,7 +119,7 @@ def home(request):
     ),
     reverse=True,
 )
-    return render(request, 'pages/chat.html', {'chat_list': chat_list, 'room_name': "general"})
+    return render(request, 'pages/chat.html', {'chat_list': chat_list, 'room_name': "general", "pending_request_count":pending_request_count})
 
 
 @login_required
