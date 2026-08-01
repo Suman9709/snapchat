@@ -163,18 +163,18 @@
   
   
 <script>
-    const imageInput = document.getElementById('image-input')
-    const cameraBtn = document.getElementById('camera_btn')
-    const imagePath = document.getElementById('image-path')
-    const imageContainer = document.getElementById('image-container')
-    const imagePreview = document.getElementById('image-preview')
+      const imageInput = document.getElementById('image-input')
+      const cameraBtn = document.getElementById('camera_btn')
+      const imagePath = document.getElementById('image-path')
+      const imageContainer = document.getElementById('image-container')
+      const imagePreview = document.getElementById('image-preview')
     
-    if (cameraBtn) {
-      cameraBtn.addEventListener('click', () => {
+      if (cameraBtn) {
+        cameraBtn.addEventListener('click', () => {
         imageInput.click()
-      })
-    }
-    imageInput.addEventListener('change', () => {
+        })
+      }
+      imageInput.addEventListener('change', () => {
       const file = imageInput.files[0]
       if (file) {
         previewImage(file)
