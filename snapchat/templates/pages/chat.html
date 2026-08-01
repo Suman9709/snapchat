@@ -5,23 +5,22 @@
   <div class="flex h-full min-h-0 flex-col overflow-hidden">
     <!-- Header -->
     <header class="flex flex-shrink-0 items-center justify-between px-4 pt-6 pb-3 shadow-xs">
-      <div class="flex flex-row gap-3 items-center">
+      <div class="flex flex-row gap-3 items-center ring-purple-600 rounded-full ring-2 ring-offset-2">
         <a href="{% url 'profile' %}" class="size-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
           {% if request.user.profile_pic %}
             <img src="{{ request.user.profile_pic.url }}" alt="{{ request.user.username }}" class="w-full h-full object-cover" />
           {% else %}
-            <i class="fa-solid fa-user text-yellow-300"></i>
+            <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="object-cover" />
           {% endif %}
         </a>
-
-        <a href="{% url 'search' %}" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2"><i class="fa-solid fa-magnifying-glass"></i></a>
       </div>
 
       <h1 class="text-xl font-semibold">Chat</h1>
 
       <div class="flex flex-row gap-3 items-center">
         <div class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2">
-          <i class="fa-regular fa-bell"></i>
+          {% comment %} <i class="fa-regular fa-bell"></i> {% endcomment %}
+          <a href="{% url 'search' %}" class="size-[32px] flex justify-center items-center rounded-full bg-gray-100 p-2"><i class="fa-solid fa-magnifying-glass"></i></a>
         </div>
 
         <a href="{% url 'friend_request' %}" class="size-[32px] bg-yellow-300 flex justify-center items-center rounded-full p-2"><i class="fa-solid fa-user-plus"></i></a>
@@ -67,7 +66,7 @@
                   {% if chat.friend.profile_pic %}
                     <img src="{{ chat.friend.profile_pic.url }}" class="object-cover rounded-full" />
                   {% else %}
-                    <img src="{% static 'images/default-avatar.png' %}" class="object-cover rounded-full" />
+                    <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="object-cover" />
                   {% endif %}
                 </div>
               </div>
@@ -82,12 +81,16 @@
                     {% if chat.last_message.is_system %}
                       System notification
                     {% elif chat.last_message.image %}
-                      📷 Photo
+                      <div class="flex items-center gap-1">
+                        <div class="h-[10px] w-[14px] rounded-sm bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600"></div>
+
+                        <span class="text-xs text-gray-400 leading-none">New Snap</span>
+                      </div>
                     {% else %}
                       {{ chat.last_message.message|truncatechars:25 }}
                     {% endif %}
                   </span>
-                  {% else %}
+                {% else %}
                   <span class="text-xs text-gray-400">Say hii to {{ chat.friend.username }}</span>
                 {% endif %}
               </a>

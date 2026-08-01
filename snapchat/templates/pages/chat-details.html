@@ -14,7 +14,7 @@
               {% if friend.profile_pic %}
                 <img src="{{ friend.profile_pic.url }}" class="object-cover w-full h-full" />
               {% else %}
-                <img src="{% static 'media/profile_pics/dhaval_shah.webp' %}" class="object-cover w-full h-full" />
+                <img src="https://i.redd.it/ppohcjn7kfl71.jpg" class="object-cover" />
               {% endif %}
             </div>
           </div>
@@ -38,10 +38,10 @@
     <div id="messages" data-friend="{{ friend.id }}" class="flex-1 min-h-0 overflow-y-auto scrollbar-none px-4 py-4 space-y-3">
       {% if messages %}
         {% for message in messages %}
-          {% if message.is_system or "screenshot" in message.message|lower %}
-    <div class="system-message message-item flex items-center justify-center my-4" data-id="{{ message.id }}" data-time="{{ message.created_at|date:'c' }}">
+          {% if message.is_system %}
+            <div class="system-message message-item flex items-center justify-center my-4" data-id="{{ message.id }}" data-time="{{ message.created_at|date:'c' }}">
 
-        <div class="flex items-center gap-2 text-[11px] text-gray-400">
+            <div class="flex items-center gap-2 text-[11px] text-gray-400">
 
             <span class="h-px w-12 bg-gray-300"></span>
 
@@ -51,11 +51,11 @@
 
             <span class="h-px w-12 bg-gray-300"></span>
 
+            </div>
+
         </div>
 
-    </div>
-
-{% else %}
+          {% else %}
             <div class="chat message-item 
             {% if message.sender == request.user %}
                 
@@ -86,7 +86,7 @@
                   {{ message.sender.username }}
                 {% endif %}
 
-                <time class="text-xs opacity-50 ml-2">{{ message.created_at|date:'H:i' }}</time>
+                <time class="text-xs opacity-50 ml-1">{{ message.created_at|date:'H:i' }}</time>
               </div>
 
               <!-- Text Message -->
@@ -95,13 +95,24 @@
               {% endif %}
 
               <!-- Snap Message -->
-              {% if message.image %}
-                <button class="snap-open mt-2 w-32 h-12 rounded-2xl bg-purple-600 flex flex-col items-center justify-center gap-2 shadow-lg" data-image="{{ message.image.url }}">
-                  {% comment %} <i class="fa-solid fa-image text-xs text-black"></i> {% endcomment %}
-
-                  <span class="text-xs font-bold text-white">Open Snap</span>
-                </button>
-              {% endif %}
+             {% if message.image %}
+<div class="chat-bubble p-0 bg-transparent">
+    <button 
+        class="snap-open w-24 h-12 rounded-2xl 
+        bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600
+        flex items-center justify-center
+        shadow-sm"
+        data-image="{{ message.image.url }}"
+    >
+        <div class="flex flex-col items-center gap-1">
+            
+            <span class="text-white text-xs font-semibold">
+                Open Snap
+            </span>
+        </div>
+    </button>
+</div>
+{% endif %}
             </div>
           {% endif %}
         {% endfor %}
@@ -153,12 +164,12 @@
     </div>
     {% comment %} <a href="{% url 'camera' %}"><i class="fa-solid fa-camera"></i></a> {% endcomment %}
     <div class="flex flex-shrink-0 items-center gap-3 p-4 shadow-sm">
-      <button id="camera_btn" type="button" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black"><i class="fa-solid fa-camera text-white text-lg"></i></button>
+      <a href="{% url 'camera' %}" id="camera_btn"  class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black"><i class="fa-solid fa-camera text-white text-lg"></i></a>
       <div class="min-w-0 flex-1">
         <input id="message-input" type="text" placeholder="Send chat..." class="w-full rounded-full bg-gray-100 px-4 py-2 focus:outline-none" />
       </div>
       <button id="send-btn" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-400"><i class="fa-solid fa-paper-plane text-white"></i></button>
-    </div>
+    </div
   </div>
   
   
@@ -169,11 +180,11 @@
       const imageContainer = document.getElementById('image-container')
       const imagePreview = document.getElementById('image-preview')
     
-      if (cameraBtn) {
+      {% comment %} if (cameraBtn) {
         cameraBtn.addEventListener('click', () => {
         imageInput.click()
         })
-      }
+      } {% endcomment %}
       imageInput.addEventListener('change', () => {
       const file = imageInput.files[0]
       if (file) {
@@ -192,8 +203,11 @@
     const snapImage = document.getElementById('snapImage')
     const closeSnap = document.getElementById('closeSnap')
     
+    let hasNotifiedForOpenSnap = false
+
     function openSnap(imageUrl) {
       snapImage.src = imageUrl
+      hasNotifiedForOpenSnap = false
       snapViewer.classList.remove('hidden')
     }
     
@@ -205,6 +219,7 @@
     
     closeSnap.addEventListener('click', () => {
       snapViewer.classList.add('hidden')
+      hasNotifiedForOpenSnap = false
     
       snapImage.src = ''
     })
@@ -271,16 +286,21 @@
       const data = JSON.parse(e.data)
     
       console.log('Received:', data)
+      const isScreenshotNotification = data.screenshot === true
+      const messageText = typeof data.message === 'string'
+        ? data.message
+        : (isScreenshotNotification ? `${data.username} took a screenshot` : '')
+
       renderMessage({
         id: data.message_id || data.id,
         sender: data.username,
         username: data.username,
         sender_id: data.sender_id,
-        message: data.message || `${data.username} took a screenshot`,
+        message: messageText,
         image: data.image,
         created_at: data.created_at,
         timestamp: data.timestamp,
-        is_system: data.screenshot || data.is_system
+        is_system: isScreenshotNotification || data.is_system === true
       })
     }
     
@@ -450,7 +470,7 @@
         emptyChat.remove()
       }
 
-      const isSystem = msg.is_system || (msg.message && msg.message.toLowerCase().includes('screenshot'))
+      const isSystem = msg.is_system === true
       const element = isSystem
         ? createSystemMessageElement(msg.message, messageId, msg.created_at)
         : createMessageElement(msg)
@@ -675,11 +695,16 @@
       }
     }
 
-    window.setInterval(loadNewMessages, 1500)
+    {% comment %} window.setInterval(loadNewMessages, 1500) {% endcomment %}
     window.addEventListener('focus', loadNewMessages)
     
     function notifyScreenshot() {
+      if (hasNotifiedForOpenSnap || snapViewer.classList.contains('hidden')) {
+        return
+      }
+
       if (socket.readyState === WebSocket.OPEN) {
+        hasNotifiedForOpenSnap = true
         socket.send(
           JSON.stringify({
             screenshot: true
@@ -689,9 +714,9 @@
     }
     
     window.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey && e.shiftKey) || e.key === 'PrintScreen') {
+      if ((e.ctrlKey && e.shiftKey)) {
         notifyScreenshot()
-        console.log('screenhot detected')
+        console.log('screenshot detected')
       }
     })
 </script>
