@@ -1,8 +1,11 @@
+from email.mime import image
 import json
 from json import JSONDecodeError
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+
+from snapchat.utils import update_snap_streak
 from .models import Conversation, Message
 from django.utils import timezone
 from datetime import timedelta
@@ -67,6 +70,8 @@ class ChatConsume(AsyncWebsocketConsumer):
         message = data.get("message")
         image = data.get("image")
         message_id = data.get("message_id")
+        print("Full data:", data)
+        print("image :", image)
 
         if message_id:
             saved_message = await self.get_saved_message(message_id)
@@ -118,7 +123,15 @@ class ChatConsume(AsyncWebsocketConsumer):
             image=image,
             message=message or "",
             is_system=is_system
+            
         
+        
+        )
+        if image:
+            print("STREAK UPDATE CALLED")
+            update_snap_streak(
+            conversation,
+            self.scope['user']
         )
         if conversation.mode == Conversation.Mode.AFTER_24HR:
             chat_message.expires_at = timezone.now() + timedelta(hours=24)

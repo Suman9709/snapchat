@@ -297,8 +297,12 @@ def upload_snap(request):
         message = message_text
         
     )
+    update_snap_streak(conversation, request.user)
     
     if image:
+        print("STREAK UPDATE CALLED")
+        print("Conversation:", conversation.id)
+        print("User:", request.user.username)
         update_snap_streak(conversation, request.user)
     
     if conversation.mode== Conversation.Mode.AFTER_24HR:
@@ -600,6 +604,7 @@ def send_snap(request):
                 message=caption,
                 image=snap.image.name,
             )
+            update_snap_streak(conversation, request.user)
             if conversation.mode == Conversation.Mode.AFTER_24HR:
                 message.expires_at = timezone.now() + timedelta(hours=24)
                 message.save(update_fields=['expires_at'])
