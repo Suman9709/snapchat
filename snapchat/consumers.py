@@ -18,6 +18,7 @@ class ChatConsume(AsyncWebsocketConsumer):
         if not self.scope['user'].is_authenticated:
             await self.close()
             return
+        
 
         if not await self.user_can_access_conversation():
             await self.close()
@@ -27,10 +28,13 @@ class ChatConsume(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
+        await self.set_online(self.scope["user"])
+        
         await self.accept()
         print(f"Connected to room: {self.room_group_name}")
         
     async def disconnect(self, close_code):
+        await self.set_offline(self.scope['user'])
         if hasattr(self, 'room_group_name'):
             await self.channel_layer.group_discard(
                 self.room_group_name,
@@ -70,8 +74,8 @@ class ChatConsume(AsyncWebsocketConsumer):
         message = data.get("message")
         image = data.get("image")
         message_id = data.get("message_id")
-        print("Full data:", data)
-        print("image :", image)
+        # print("Full data:", data)
+        # print("image :", image)
 
         if message_id:
             saved_message = await self.get_saved_message(message_id)
@@ -112,6 +116,18 @@ class ChatConsume(AsyncWebsocketConsumer):
         }))
         
 
+    @database_sync_to_async
+    def set_online(self, user):
+        user.is_online = True
+        user.last_seen = timezone.now()
+        user.save(update_fields=['is_online', 'last_seen'])
+        
+    @database_sync_to_async
+    def set_offline(self, user):
+        user.is_online = False
+        user.last_seen = timezone.now()
+        user.save(update_fields=['is_online', 'last_seen'])
+        
         
     @database_sync_to_async   
     def save_message(self, message=None, image=None, is_system=False):
@@ -128,7 +144,7 @@ class ChatConsume(AsyncWebsocketConsumer):
         
         )
         if image:
-            print("STREAK UPDATE CALLED")
+           
             update_snap_streak(
             conversation,
             self.scope['user']

@@ -7,6 +7,8 @@ from django.contrib.auth import get_user_model
 class SnapUser(AbstractUser):
     profile_pic = models.ImageField(upload_to='profile_pics', blank=True, null=True)
     bio = models.CharField(max_length=256, blank=True, null=True)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    is_online = models.BooleanField(default=False)
 
 
 class UserLocation(models.Model):

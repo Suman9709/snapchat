@@ -21,7 +21,14 @@
           <div>
             <h2 class="text-lg font-semibold">{{ friend.username }}</h2>
 
-            <p class="text-xs text-gray-400">Active 1m ago</p>
+           <p class="text-xs text-gray-400">
+              {% if friend.is_online %}
+                Online
+              {% else %}
+                Last seen: {{ friend.last_seen|timesince }}
+              {% endif %}
+            </p> 
+            {% comment %} <p>Active 1 min ago</p> {% endcomment %}
           </div>
         </div>
       </div>
