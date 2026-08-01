@@ -29,6 +29,20 @@ def delete_expired_messages():
         expires_at__lte=timezone.now(),
     ).delete()
 
+
+def serialize_chat_message(message):
+    return {
+        "id": message.id,
+        "sender": message.sender.username,
+        "username": message.sender.username,
+        "sender_id": message.sender.id,
+        "message": message.message,
+        "image": message.image.url if message.image else None,
+        "created_at": message.created_at.isoformat(),
+        "timestamp": timezone.localtime(message.created_at).strftime("%H:%M"),
+        "is_system": message.is_system,
+    }
+
 @ensure_csrf_cookie
 @require_http_methods(["GET", "POST"])
 def register_view(request):
@@ -157,21 +171,102 @@ def load_old_message(request, id):
     
     messages = messages.order_by('-created_at')[:10]
     
-    message = []
-    
-    for msg in reversed(messages):
-        message.append({
-            "id": msg.id,
-            "sender": msg.sender.username,
-            "sender_id": msg.sender.id,
-            "message": msg.message,
-            "image": msg.image.url if msg.image else None,
-            "created_at": msg.created_at.isoformat(),
-        })
+    message = [serialize_chat_message(msg) for msg in reversed(messages)]
     return JsonResponse({  
         "messages": message,
         "has_more": len(message) == 10    
     })
+
+
+@login_required
+def load_new_messages(request, id):
+    delete_expired_messages()
+
+    friend = get_object_or_404(get_user_model(), pk=id)
+    conversation = (
+        Conversation.objects
+        .filter(participants=request.user)
+        .filter(participants=friend)
+        .distinct()
+        .first()
+    )
+
+    if not conversation:
+        return JsonResponse({"messages": []})
+
+    try:
+        after_id = int(request.GET.get("after_id", 0))
+    except (TypeError, ValueError):
+        after_id = 0
+
+    messages = (
+        conversation.messages
+        .select_related("sender")
+        .filter(id__gt=after_id)
+        .order_by("id")[:50]
+    )
+
+    return JsonResponse({
+        "messages": [serialize_chat_message(message) for message in messages]
+    })
+
+
+@require_http_methods(["POST"])
+@login_required
+def send_chat_message(request, id):
+    friend = get_object_or_404(get_user_model(), pk=id)
+
+    if friend == request.user or not are_friends(request.user, friend):
+        return JsonResponse({"error": "invalid conversation"}, status=403)
+
+    message_text = request.POST.get("message", "").strip()
+    if not message_text:
+        return JsonResponse({"error": "message is required"}, status=400)
+
+    conversation = (
+        Conversation.objects
+        .filter(participants=request.user)
+        .filter(participants=friend)
+        .distinct()
+        .first()
+    )
+
+    if not conversation:
+        conversation = Conversation.objects.create()
+        conversation.participants.add(request.user, friend)
+
+    message = Message.objects.create(
+        conversation=conversation,
+        sender=request.user,
+        message=message_text,
+    )
+
+    if conversation.mode == Conversation.Mode.AFTER_24HR:
+        message.expires_at = timezone.now() + timedelta(hours=24)
+        message.save(update_fields=["expires_at"])
+
+    conversation.updated_at = timezone.now()
+    conversation.save(update_fields=["updated_at"])
+
+    payload = serialize_chat_message(message)
+    channel_layer = get_channel_layer()
+    if channel_layer:
+        async_to_sync(channel_layer.group_send)(
+            f"chat_{conversation.id}",
+            {
+                "type": "chat_message",
+                "message": payload["message"],
+                "image": payload["image"],
+                "username": payload["username"],
+                "sender_id": payload["sender_id"],
+                "timestamp": payload["timestamp"],
+                "created_at": payload["created_at"],
+                "message_id": payload["id"],
+                "is_system": False,
+            },
+        )
+
+    return JsonResponse(payload)
    
     
 @require_http_methods(["POST"])
@@ -212,13 +307,26 @@ def upload_snap(request):
         
     conversation.updated_at = timezone.now()
     conversation.save(update_fields=['updated_at'])
-    
-    return JsonResponse({
-        'image':message.image.url,
-        'message': message.message,
-        'id':message.id,
-        'created_at':message.created_at.strftime('%H:%M')
-    })
+
+    payload = serialize_chat_message(message)
+    channel_layer = get_channel_layer()
+    if channel_layer:
+        async_to_sync(channel_layer.group_send)(
+            f"chat_{conversation.id}",
+            {
+                "type": "chat_message",
+                "message": payload["message"],
+                "image": payload["image"],
+                "username": payload["username"],
+                "sender_id": payload["sender_id"],
+                "timestamp": payload["timestamp"],
+                "created_at": payload["created_at"],
+                "message_id": payload["id"],
+                "is_system": False,
+            },
+        )
+
+    return JsonResponse(payload)
     
     
 def chat_setting(request,id):
@@ -509,6 +617,8 @@ def send_snap(request):
                     "username": request.user.username,
                     "sender_id": request.user.id,
                     "timestamp": message.created_at.strftime("%H:%M"),
+                    "created_at": message.created_at.isoformat(),
+                    "message_id": message.id,
                 },
             )
     

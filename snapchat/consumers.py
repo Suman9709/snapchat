@@ -55,8 +55,11 @@ class ChatConsume(AsyncWebsocketConsumer):
                 {
                     "type": "screenshot_notification",
                     "message": text,
+                    "username": username,
                     "sender_id": user.id,
                     "timestamp": saved_message["timestamp"],
+                    "created_at": saved_message["created_at"],
+                    "message_id": saved_message["id"],
                 },
             )
             return
@@ -83,18 +86,22 @@ class ChatConsume(AsyncWebsocketConsumer):
                 "username": username,
                 "sender_id": user.id,
                 "timestamp": saved_message["timestamp"],
+                "created_at": saved_message["created_at"],
                 "message_id": saved_message["id"],
                 "is_system": False,
             },
         )
+        print("MESSAGE SENT TO GROUP:", self.room_group_name)
         
     async def chat_message(self, event):
+        print("CHAT MESSAGE EVENT:", event)
         await self.send(text_data=json.dumps({
             'message': event.get('message'),
             'image': event.get('image'),
             'username': event.get('username'),
             'sender_id': event.get('sender_id'),
             'timestamp': event.get('timestamp'),
+            'created_at': event.get('created_at'),
             'message_id': event.get('message_id'),
             'is_system': event.get('is_system', False),
         }))
@@ -140,6 +147,7 @@ class ChatConsume(AsyncWebsocketConsumer):
             "message": message.message,
             "image": message.image.url if message.image else None,
             "timestamp": timezone.localtime(message.created_at).strftime("%H:%M"),
+            "created_at": message.created_at.isoformat(),
         }
 
     @database_sync_to_async
@@ -156,8 +164,11 @@ class ChatConsume(AsyncWebsocketConsumer):
             {
                 "screenshot": True,
                 "message": event["message"],
+                "username": event.get("username"),
                 "sender_id": event["sender_id"],
                 "timestamp": event.get("timestamp"),
+                "created_at": event.get("created_at"),
+                "message_id": event.get("message_id"),
                 "is_system": True,
             }
         )

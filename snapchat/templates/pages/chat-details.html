@@ -35,11 +35,11 @@
 
     <!-- Messages -->
 
-    <div id="messages"data-friend="{{ friend.id }}" class="flex-1 min-h-0 overflow-y-auto scrollbar-none px-4 py-4 space-y-3">
+    <div id="messages" data-friend="{{ friend.id }}" class="flex-1 min-h-0 overflow-y-auto scrollbar-none px-4 py-4 space-y-3">
       {% if messages %}
         {% for message in messages %}
           {% if message.is_system or "screenshot" in message.message|lower %}
-    <div class="system-message flex items-center justify-center my-4">
+    <div class="system-message message-item flex items-center justify-center my-4" data-id="{{ message.id }}" data-time="{{ message.created_at|date:'c' }}">
 
         <div class="flex items-center gap-2 text-[11px] text-gray-400">
 
@@ -218,9 +218,16 @@
     const currentUserId = Number('{{ request.user.id }}')
     const messages = document.getElementById('messages')
     const sendBtn = document.getElementById('send-btn')
+    const friendId = messages.dataset.friend
+    const seenMessageIds = new Set()
+    let lastMessageId = 0
     
     let loadingOldMessages = false
     let hasMoreMessages = true
+
+    messages.querySelectorAll('[data-id]').forEach((element) => {
+      rememberMessageId(element.dataset.id)
+    })
     
     const socketProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
     const socketUrl = socketProtocol + '://' + window.location.host + '/ws/chat/' + conversationId + '/'
@@ -264,14 +271,17 @@
       const data = JSON.parse(e.data)
     
       console.log('Received:', data)
-     if (data.screenshot) {
-    addSystemMessage(
-        `${data.username} took a screenshot`
-    )
-    return
-    }
-    
-      addMessage(data.username, data.message, data.timestamp, data.sender_id === currentUserId, data.image)
+      renderMessage({
+        id: data.message_id || data.id,
+        sender: data.username,
+        username: data.username,
+        sender_id: data.sender_id,
+        message: data.message || `${data.username} took a screenshot`,
+        image: data.image,
+        created_at: data.created_at,
+        timestamp: data.timestamp,
+        is_system: data.screenshot || data.is_system
+      })
     }
     
     connectSocket()
@@ -308,6 +318,27 @@
         throw new Error(data.error || 'Image upload failed')
       }
     
+      return await response.json()
+    }
+
+    async function sendTextMessage(message) {
+      const formData = new FormData()
+      formData.append('message', message)
+
+      const response = await fetch(`/chat/${friendId}/send-message/`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': getCSRFToken()
+        },
+        body: formData
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Message send failed')
+      }
+
       return await response.json()
     }
     
@@ -370,19 +401,14 @@
     
       try {
         sendBtn.disabled = true
-        await waitForSocketOpen()
     
         if (imageInput.files.length > 0) {
           imageData = await uploadImage(message)
+          renderMessage(imageData)
+        } else {
+          const messageData = await sendTextMessage(message)
+          renderMessage(messageData)
         }
-    
-        socket.send(
-          JSON.stringify({
-            message: imageData ? imageData.message : message,
-            image: imageData ? imageData.image : null,
-            message_id: imageData ? imageData.id : null
-          })
-        )
     
         input.value = ''
         imageInput.value = ''
@@ -397,24 +423,111 @@
       }
     }
     sendBtn.addEventListener('click', sendMessage)
-    
-    function addMessage(username, message, timestamp, isOwnMessage, image) {
+
+    function rememberMessageId(messageId) {
+      const numericId = Number(messageId)
+      if (!numericId) {
+        return true
+      }
+
+      if (seenMessageIds.has(numericId)) {
+        return false
+      }
+
+      seenMessageIds.add(numericId)
+      lastMessageId = Math.max(lastMessageId, numericId)
+      return true
+    }
+
+    function renderMessage(msg, options = {}) {
+      const messageId = msg.id || msg.message_id
+      if (!rememberMessageId(messageId)) {
+        return
+      }
+
       const emptyChat = document.getElementById('emptyChat')
       if (emptyChat) {
         emptyChat.remove()
       }
+
+      const isSystem = msg.is_system || (msg.message && msg.message.toLowerCase().includes('screenshot'))
+      const element = isSystem
+        ? createSystemMessageElement(msg.message, messageId, msg.created_at)
+        : createMessageElement(msg)
+
+      if (options.prepend) {
+        messages.insertBefore(element, messages.firstChild)
+      } else {
+        const wasNearBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 120
+        messages.appendChild(element)
+        if (wasNearBottom || msg.sender_id === currentUserId) {
+          messages.scrollTop = messages.scrollHeight
+        }
+      }
+    }
+
+    function createMessageElement(msg) {
+      const messageCreatedAt = msg.created_at || new Date().toISOString()
+      const messageWrapper = document.createElement('div')
+      messageWrapper.className = `chat message-item ${msg.sender_id === currentUserId ? 'chat-end' : 'chat-start'}`
+      messageWrapper.dataset.id = msg.id || msg.message_id || ''
+      messageWrapper.dataset.time = messageCreatedAt
+
+      const header = document.createElement('div')
+      header.className = 'chat-header'
+      header.append(document.createTextNode(msg.sender_id === currentUserId ? 'You ' : `${msg.sender || msg.username} `))
+
+      const time = document.createElement('time')
+      time.className = 'text-xs opacity-50 ml-2'
+      time.textContent = msg.timestamp || formatMessageTime(messageCreatedAt)
+      header.append(time)
+      messageWrapper.appendChild(header)
+
+      if (msg.message) {
+        const bubble = document.createElement('div')
+        bubble.className = 'chat-bubble'
+        bubble.textContent = msg.message
+        messageWrapper.appendChild(bubble)
+      }
+
+      if (msg.image) {
+        const snapButton = document.createElement('button')
+        snapButton.type = 'button'
+        snapButton.className = 'snap-open mt-2 w-32 h-12 rounded-2xl bg-purple-600 flex flex-col items-center justify-center gap-2 shadow-lg'
+        snapButton.dataset.image = msg.image
+
+        const label = document.createElement('span')
+        label.className = 'text-xs font-bold text-white'
+        label.textContent = 'Open Snap'
+        snapButton.appendChild(label)
+        messageWrapper.appendChild(snapButton)
+      }
+
+      return messageWrapper
+    }
+    
+    function addMessage(username, message, createdAt, isOwnMessage, image, displayTime, messageId) {
+      console.log('Adding message:', { username, message, createdAt, isOwnMessage, image })
+      const emptyChat = document.getElementById('emptyChat')
+      if (emptyChat) {
+        emptyChat.remove()
+      }
+      const messageCreatedAt = createdAt || new Date().toISOString()
     
       const messageWrapper = document.createElement('div')
       messageWrapper.className = `chat message-item ${isOwnMessage ? 'chat-end' : 'chat-start'}`
-      messageWrapper.dataset.time = timestamp
+      if (messageId) {
+        messageWrapper.dataset.id = messageId
+      }
+      messageWrapper.dataset.time = messageCreatedAt
     
       const header = document.createElement('div')
       header.className = 'chat-header'
       header.append(document.createTextNode(isOwnMessage ? 'You ' : `${username} `))
     
       const time = document.createElement('time')
-      time.className = 'text-xs opacity-50'
-      time.textContent = timestamp
+      time.className = 'text-xs opacity-50 ml-2'
+      time.textContent = displayTime || formatMessageTime(messageCreatedAt)
       header.append(time)
     
       if (message) {
@@ -443,55 +556,61 @@
     
       messages.scrollTop = messages.scrollHeight
     }
-    
-    function addSystemMessage(message) {
-    const emptyChat = document.getElementById('emptyChat')
 
-    if (emptyChat) {
-        emptyChat.remove()
+    function formatMessageTime(createdAt) {
+      if (!createdAt) {
+        return ''
+      }
+
+      const date = new Date(createdAt)
+      if (Number.isNaN(date.getTime())) {
+        return createdAt
+      }
+
+      return date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     }
 
+    function createSystemMessageElement(message, messageId, createdAt) {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'system-message message-item flex items-center justify-center my-4'
+      if (messageId) {
+        wrapper.dataset.id = messageId
+      }
+      wrapper.dataset.time = createdAt || new Date().toISOString()
 
-    const wrapper = document.createElement("div")
+      const notification = document.createElement('div')
+      notification.className = 'flex items-center gap-2 text-[11px] text-gray-400'
 
-    wrapper.className =
-        "flex items-center justify-center my-4"
+      const leftLine = document.createElement('span')
+      leftLine.className = 'h-px w-12 bg-gray-300'
 
+      const text = document.createElement('span')
+      text.textContent = message
 
-    const notification = document.createElement("div")
+      const rightLine = document.createElement('span')
+      rightLine.className = 'h-px w-12 bg-gray-300'
 
-    notification.className =
-        "flex items-center gap-2 text-[11px] text-base-content/60"
+      notification.append(leftLine, text, rightLine)
+      wrapper.appendChild(notification)
 
+      return wrapper
+    }
+    
+    function addSystemMessage(message, messageId, createdAt) {
+      const emptyChat = document.getElementById('emptyChat')
+      if (emptyChat) {
+        emptyChat.remove()
+      }
 
-    const leftLine = document.createElement("span")
-    leftLine.className =
-        "h-px w-12 bg-base-300"
+      if (!rememberMessageId(messageId)) {
+        return
+      }
 
-
-    const text = document.createElement("span")
-    text.textContent = `System: ${message}`
-
-
-    const rightLine = document.createElement("span")
-    rightLine.className =
-        "h-px w-12 bg-base-300"
-
-
-    notification.append(
-        leftLine,
-        text,
-        rightLine
-    )
-
-
-    wrapper.appendChild(notification)
-
-
-    messages.appendChild(wrapper)
-
-
-    messages.scrollTop = messages.scrollHeight
+      messages.appendChild(createSystemMessageElement(message, messageId, createdAt))
+      messages.scrollTop = messages.scrollHeight
     }
     
     messages.scrollTop = messages.scrollHeight
@@ -521,119 +640,43 @@
 
         
 
-         data.messages.forEach(msg => {
-
-    if(
-    msg.message &&
-    msg.message.toLowerCase().includes("screenshot")  
-    ){
-
-    const systemDiv=document.createElement("div")
-
-    systemDiv.className =
-    "flex items-center justify-center my-4"
-
-
-    systemDiv.innerHTML = `
-
-    <div class="flex items-center gap-2 text-[11px] text-gray-400">
-
-        <span class="h-px w-12 bg-gray-300"></span>
-
-        <span>
-            ${msg.message}
-        </span>
-
-        <span class="h-px w-12 bg-gray-300"></span>
-
-    </div>
-
-    `
-    messages.insertBefore(
-        systemDiv,
-        messages.firstChild
-    )
-
-
-    return;
-
-    }
-    const messageDiv =
-    document.createElement("div")
-      messageDiv.className =`message-item chat
-                ${
-                    msg.sender_id === currentUserId
-                    ?
-                    "chat-end"
-                    :
-                    "chat-start"
-                }
-                `
-                messageDiv.dataset.id =msg.id
-                messageDiv.dataset.time =msg.created_at
-
-                const time =
-                    new Date(msg.created_at)
-                    .toLocaleTimeString([], {
-                        hour:"2-digit",
-                        minute:"2-digit"
-                    })
-
-                messageDiv.innerHTML = `
-
-                <div class="chat-header">
-                    ${
-                    msg.sender_id === currentUserId
-                    ?
-                    "You"
-                    :
-                    msg.sender
-                    }
-                    <time class="text-xs opacity-50 ml-2">
-                        ${time}
-                    </time>
-                </div>
-                ${
-                    msg.message
-                    ?
-                    `<div class="chat-bubble">
-                        ${msg.message}
-                    </div>
-                    `
-                    :
-                    ""
-                }
-                ${
-                    msg.image
-                    ?
-                    `
-                    <button 
-                    class="snap-open mt-2 w-32 h-12 rounded-2xl bg-purple-600 flex flex-col items-center justify-center gap-2 shadow-lg"
-                    data-image="${msg.image}">
-                    <span class="text-xs font-bold text-white">
-                        Open Snap
-                    </span>
-                    </button>
-                    `
-                    :
-                    ""
-                }
-                `
-                // add above existing messages
-                messages.insertBefore(messageDiv, messages.firstChild)
-            })
+          data.messages.slice().reverse().forEach(msg => {
+            renderMessage(msg, { prepend: true })
+          })
             // Maintain scroll position
-            const newHeight =messages.scrollHeight
-            messages.scrollTop =newHeight - previousHeight
-            hasMoreMessages =data.has_more
-            loadingOldMessages = false
+            const newHeight = messages.scrollHeight
+            messages.scrollTop = newHeight - previousHeight
+            hasMoreMessages = data.has_more
           }
               catch(error){
                 console.log( "Old message loading error:", error )
-                loadingOldMessges = false
+       } finally {
+                loadingOldMessages = false
        } 
       }
     })
+
+    async function loadNewMessages() {
+      try {
+        const response = await fetch(`/chat/${friendId}/new-messages/?after_id=${lastMessageId}`, {
+          credentials: 'same-origin'
+        })
+
+        if (!response.ok) {
+          return
+        }
+
+        const data = await response.json()
+        data.messages.forEach(msg => {
+          renderMessage(msg)
+        })
+      } catch (error) {
+        console.log('New message loading error:', error)
+      }
+    }
+
+    window.setInterval(loadNewMessages, 1500)
+    window.addEventListener('focus', loadNewMessages)
     
     function notifyScreenshot() {
       if (socket.readyState === WebSocket.OPEN) {
@@ -651,5 +694,5 @@
         console.log('screenhot detected')
       }
     })
-  </script>
+</script>
 {% endblock %}

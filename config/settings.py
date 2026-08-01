@@ -84,25 +84,6 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # WebSocket configuration
 ASGI_APPLICATION = "config.asgi.application"
 
-CHANNEL_LAYER_BACKEND = os.getenv("CHANNEL_LAYER_BACKEND", "memory")
-
-# if CHANNEL_LAYER_BACKEND == "redis":
-#     CHANNEL_LAYERS = {
-#         "default": {
-#             "BACKEND": "channels_redis.core.RedisChannelLayer",
-#             "CONFIG": {
-#                 "hosts": [
-#                     (
-#                         os.getenv("REDIS_HOST", "127.0.0.1"),
-#                         int(os.getenv("REDIS_PORT", "6379")),
-#                     )
-#                 ],
-#                 "expiry":60,
-#                 "capacity": 1500,
-#             },
-#         },
-#     }
-# else:
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
