@@ -91,7 +91,7 @@
                 {% if chat.last_message %}
                   <span class="text-xs text-gray-400">
                     {% if chat.last_message.is_system %}
-                      System notification
+                      {{ chat.last_message.message|truncatechars:25 }}
                     {% elif chat.last_message.image %}
                       <div class="flex items-center gap-1">
                         <div class="h-[10px] w-[14px] rounded-sm bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600"></div>
