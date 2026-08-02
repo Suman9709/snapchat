@@ -139,9 +139,6 @@ class ChatConsume(AsyncWebsocketConsumer):
             image=image,
             message=message or "",
             is_system=is_system
-            
-        
-        
         )
         if image:
            
