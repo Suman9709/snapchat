@@ -43,6 +43,28 @@ def serialize_chat_message(message):
         "is_system": message.is_system,
     }
 
+
+def get_unseen_snap_count(conversation, friend):
+    return conversation.messages.filter(
+        sender=friend,
+        image__isnull=False,
+        seen=False,
+    ).count()
+
+
+def push_unseen_snap_update(user_id, friend_id, unseen_snap_count):
+    channel_layer = get_channel_layer()
+    if channel_layer:
+        async_to_sync(channel_layer.group_send)(
+            f"user_{user_id}",
+            {
+                "type": "unseen_snap_update",
+                "friend_id": friend_id,
+                "unseen_snap_count": unseen_snap_count,
+            },
+        )
+
+
 @ensure_csrf_cookie
 @require_http_methods(["GET", "POST"])
 def register_view(request):
@@ -100,14 +122,17 @@ def home(request):
         
        
         last_message = None
+        unseen_snap_count = 0
         if conversation:
             last_message = (
                 conversation.messages.order_by("-created_at").first()
             )
+            unseen_snap_count = get_unseen_snap_count(conversation, friend)
         chat_list.append({
                 "friend": friend,
                 "conversation": conversation,
                 "last_message": last_message,
+                "unseen_snap_count": unseen_snap_count,
             })
     chat_list.sort(
     key=lambda chat: (
@@ -140,6 +165,14 @@ def chat(request, id):
     if not conversation:
         conversation = Conversation.objects.create()
         conversation.participants.add(request.user, friend)
+    else:
+        updated_count = conversation.messages.filter(
+            sender=friend,
+            image__isnull=False,
+            seen=False,
+        ).update(seen=True)
+        if updated_count:
+            push_unseen_snap_update(request.user.id, friend.id, 0)
 
     messages = conversation.messages.select_related('sender').order_by('-created_at')[:10]
     messages = reversed(messages) # Reverse the order to show the latest messages at the bottom
@@ -332,8 +365,65 @@ def upload_snap(request):
                 "is_system": False,
             },
         )
+        unseen_snap_count = Message.objects.filter(
+            conversation=conversation,
+            sender=request.user,
+            image__isnull=False,
+            seen=False,
+        ).count()
+        recipient_ids = conversation.participants.exclude(id=request.user.id).values_list(
+            "id", flat=True
+        )
+        for recipient_id in recipient_ids:
+            push_unseen_snap_update(recipient_id, request.user.id, unseen_snap_count)
 
     return JsonResponse(payload)
+
+
+@require_http_methods(["POST"])
+@login_required
+def mark_chat_seen(request, id):
+    friend = get_object_or_404(get_user_model(), pk=id)
+
+    if friend == request.user or not are_friends(request.user, friend):
+        return JsonResponse({"error": "invalid conversation"}, status=403)
+
+    conversation = (
+        Conversation.objects
+        .filter(participants=request.user)
+        .filter(participants=friend)
+        .distinct()
+        .first()
+    )
+
+    if not conversation:
+        return JsonResponse({"friend_id": friend.id, "unseen_snap_count": 0, "updated": 0})
+
+    upto_message_id = request.POST.get("upto_message_id")
+    unseen_snap_queryset = conversation.messages.filter(
+        sender=friend,
+        image__isnull=False,
+        seen=False,
+    )
+
+    if upto_message_id:
+        try:
+            upto_message_id = int(upto_message_id)
+        except ValueError:
+            return JsonResponse({"error": "invalid upto_message_id"}, status=400)
+        unseen_snap_queryset = unseen_snap_queryset.filter(id__lte=upto_message_id)
+
+    updated = unseen_snap_queryset.update(seen=True)
+    unseen_snap_count = get_unseen_snap_count(conversation, friend)
+    push_unseen_snap_update(request.user.id, friend.id, unseen_snap_count)
+
+    return JsonResponse(
+        {
+            "friend_id": friend.id,
+            "unseen_snap_count": unseen_snap_count,
+            "updated": updated,
+        }
+    )
     
     
 def chat_setting(request,id):

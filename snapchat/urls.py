@@ -31,6 +31,7 @@ urlpatterns = [
     path('chat/<int:id>/old-messages/', views.load_old_message, name = 'load-old-messages'),
     path('chat/<int:id>/new-messages/', views.load_new_messages, name='load-new-messages'),
     path('chat/<int:id>/send-message/', views.send_chat_message, name='send-chat-message'),
+    path('chat/<int:id>/mark-seen/', views.mark_chat_seen, name='mark-chat-seen'),
     # path('chat/<int:id>/delete/', views.delete_conversation, name = 'delete-conversation'),
     
     

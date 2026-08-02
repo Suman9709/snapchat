@@ -69,7 +69,7 @@
     <main class="flex-1 overflow-y-auto scrollbar-none px-4 py-6 pb-24">
       <ul class="space-y-6">
         {% for chat in chat_list %}
-          <li class="flex items-center justify-between">
+          <li class="flex items-center justify-between" data-chat-row="{{ chat.friend.id }}">
             <div class="flex gap-4">
               <!-- Profile Picture -->
 
@@ -88,23 +88,58 @@
               <a href="{% url 'chat' id=chat.friend.id %}" class="flex flex-col">
                 <h2 class="font-semibold">{{ chat.friend.username }}</h2>
 
-                {% if chat.last_message %}
-                  <span class="text-xs text-gray-400">
-                    {% if chat.last_message.is_system %}
-                      {{ chat.last_message.message|truncatechars:25 }}
-                    {% elif chat.last_message.image %}
-                      <div class="flex items-center gap-1">
-                        <div class="h-[10px] w-[14px] rounded-sm bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600"></div>
+                <div class="text-xs text-gray-400">
+                  <div class="flex items-center gap-1 {% if chat.last_message and chat.last_message.image or chat.unseen_snap_count > 0 %}
 
-                        <span class="text-xs text-gray-400 leading-none">New Snap</span>
-                      </div>
                     {% else %}
-                      {{ chat.last_message.message|truncatechars:25 }}
+                      
+                      
+                      hidden
+
+
+                    {% endif %}"
+                    data-new-snap-row="{{ chat.friend.id }}">
+                    <!-- Snap Icon -->
+                    <div class="h-[10px] w-[14px] rounded-sm bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600"></div>
+
+                    <!-- Snap Count -->
+                    <span class="text-[11px] font-semibold text-purple-600 {% if chat.unseen_snap_count > 0 %}
+
+                      {% else %}
+                        
+                        
+                        hidden
+
+
+                      {% endif %}"
+                      data-unseen-snap-badge="{{ chat.friend.id }}">
+                      {% if chat.unseen_snap_count > 9 %}
+                        9+ <span class="text-xs font-medium text-purple-600 leading-none">New Snap</span>
+                      {% else %}
+                        {{ chat.unseen_snap_count }}
+                      {% endif %}
+                    </span>
+                    <!-- Text -->
+                    {% if chat.unseen_snap_count > 0 %}
+                      <span class="text-xs font-medium text-purple-600 leading-none">New Snap</span>
+                    {% else %}
+                      <span class="text-xs font-medium text-gray-600 leading-none">Tap to chat</span>
+                    {% endif %}
+
+                    <!-- New Snap -->
+                  </div>
+                  <span class="{% if chat.last_message and chat.last_message.image or chat.unseen_snap_count > 0 %}hidden{% endif %}" data-last-message-text="{{ chat.friend.id }}">
+                    {% if chat.last_message %}
+                      {% if chat.last_message.is_system %}
+                        {{ chat.last_message.message|truncatechars:25 }}
+                      {% else %}
+                        {{ chat.last_message.message|truncatechars:25 }}
+                      {% endif %}
+                    {% else %}
+                      Say hii to {{ chat.friend.username }}
                     {% endif %}
                   </span>
-                {% else %}
-                  <span class="text-xs text-gray-400">Say hii to {{ chat.friend.username }}</span>
-                {% endif %}
+                </div>
               </a>
             </div>
 
@@ -134,4 +169,72 @@
 
     {% include 'components/bottomnavbar.html' %}
   </div>
+
+  <script>
+    const notificationProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+    const notificationSocketUrl = notificationProtocol + '://' + window.location.host + '/ws/notifications/'
+    let notificationSocket = null
+    let notificationReconnectTimer = null
+    
+    function formatUnseenSnapCount(count) {
+      return count > 99 ? '99+' : String(count)
+    }
+    
+    function updateSnapRow(friendId, unseenSnapCount) {
+      const snapRow = document.querySelector(`[data-new-snap-row="${friendId}"]`)
+      const badge = document.querySelector(`[data-unseen-snap-badge="${friendId}"]`)
+      const lastMessageText = document.querySelector(`[data-last-message-text="${friendId}"]`)
+    
+      if (!snapRow || !badge || !lastMessageText) {
+        return
+      }
+    
+      snapRow.classList.remove('hidden')
+      lastMessageText.classList.add('hidden')
+    
+      if (unseenSnapCount > 0) {
+        badge.classList.remove('hidden')
+        badge.textContent = formatUnseenSnapCount(unseenSnapCount)
+      } else {
+        badge.classList.add('hidden')
+      }
+    }
+    
+    function connectNotificationSocket() {
+      if (notificationSocket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(notificationSocket.readyState)) {
+        return
+      }
+    
+      notificationSocket = new WebSocket(notificationSocketUrl)
+    
+      notificationSocket.onopen = function () {
+        if (notificationReconnectTimer) {
+          window.clearTimeout(notificationReconnectTimer)
+          notificationReconnectTimer = null
+        }
+      }
+    
+      notificationSocket.onclose = function () {
+        if (!notificationReconnectTimer) {
+          notificationReconnectTimer = window.setTimeout(connectNotificationSocket, 1000)
+        }
+      }
+    
+      notificationSocket.onmessage = function (event) {
+        const data = JSON.parse(event.data)
+        if (data.type !== 'unseen_snap_update') {
+          return
+        }
+    
+        const friendId = Number(data.friend_id)
+        const unseenSnapCount = Number(data.unseen_snap_count || 0)
+        if (!friendId) {
+          return
+        }
+        updateSnapRow(friendId, unseenSnapCount)
+      }
+    }
+    
+    connectNotificationSocket()
+  </script>
 {% endblock %}

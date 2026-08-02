@@ -100,6 +100,8 @@ class ChatConsume(AsyncWebsocketConsumer):
                 "is_system": False,
             },
         )
+        if saved_message.get("image"):
+            await self.notify_unseen_snap_updates(sender_id=user.id)
         print("MESSAGE SENT TO GROUP:", self.room_group_name)
         
     async def chat_message(self, event):
@@ -139,6 +141,9 @@ class ChatConsume(AsyncWebsocketConsumer):
             image=image,
             message=message or "",
             is_system=is_system
+            
+        
+        
         )
         if image:
            
@@ -199,3 +204,63 @@ class ChatConsume(AsyncWebsocketConsumer):
             }
         )
     )
+
+    async def notify_unseen_snap_updates(self, sender_id):
+        updates = await self.get_unseen_snap_updates(sender_id)
+        for update in updates:
+            await self.channel_layer.group_send(
+                f"user_{update['user_id']}",
+                {
+                    "type": "unseen_snap_update",
+                    "friend_id": update["friend_id"],
+                    "unseen_snap_count": update["unseen_snap_count"],
+                },
+            )
+
+    @database_sync_to_async
+    def get_unseen_snap_updates(self, sender_id):
+        conversation = Conversation.objects.get(id=self.conversation_id)
+        recipient_ids = list(
+            conversation.participants.exclude(id=sender_id).values_list("id", flat=True)
+        )
+        unseen_snap_count = Message.objects.filter(
+            conversation_id=self.conversation_id,
+            sender_id=sender_id,
+            image__isnull=False,
+            seen=False,
+        ).count()
+        return [
+            {
+                "user_id": recipient_id,
+                "friend_id": sender_id,
+                "unseen_snap_count": unseen_snap_count,
+            }
+            for recipient_id in recipient_ids
+        ]
+
+
+class NotificationConsume(AsyncWebsocketConsumer):
+    async def connect(self):
+        if not self.scope["user"].is_authenticated:
+            await self.close()
+            return
+        self.notification_group_name = f"user_{self.scope['user'].id}"
+        await self.channel_layer.group_add(self.notification_group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        if hasattr(self, "notification_group_name"):
+            await self.channel_layer.group_discard(
+                self.notification_group_name, self.channel_name
+            )
+
+    async def unseen_snap_update(self, event):
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "unseen_snap_update",
+                    "friend_id": event["friend_id"],
+                    "unseen_snap_count": event["unseen_snap_count"],
+                }
+            )
+        )
