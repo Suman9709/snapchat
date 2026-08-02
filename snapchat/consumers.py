@@ -55,7 +55,10 @@ class ChatConsume(AsyncWebsocketConsumer):
 
         if data.get("screenshot"):
             text = f"{username} took a screenshot of the chat."
-            saved_message = await self.save_message(text, is_system=True)
+            saved_message = await self.save_message(
+                text,
+                is_system=True
+            )
 
             await self.channel_layer.group_send(
                 self.room_group_name,

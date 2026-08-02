@@ -50,7 +50,13 @@
               <div class="flex items-center gap-2 text-[11px] text-gray-400">
                 <span class="h-px w-12 bg-gray-300"></span>
 
-                <span>{{ message.message }}</span>
+                <span>
+                  {% if message.sender_id == request.user.id %}
+                    You took a screenshot of the chat.
+                  {% else %}
+                    {{ message.sender.username }} took a screenshot of the chat.
+                  {% endif %}
+                </span>
 
                 <span class="h-px w-12 bg-gray-300"></span>
               </div>
@@ -58,6 +64,11 @@
           {% else %}
             <div class="chat message-item 
             {% if message.sender == request.user %}
+                
+                
+                
+                
+                
                 
                 
                 
@@ -76,7 +87,17 @@
 
 
 
+
+
+
+
+
               {% else %}
+                
+                
+                
+                
+                
                 
                 
                 
@@ -87,6 +108,11 @@
                
                
                 chat-start
+
+
+
+
+
 
 
 
@@ -629,8 +655,9 @@
       return wrapper
     }
     
-    function addSystemMessage(message, messageId, createdAt) {
-      const emptyChat = document.getElementById('emptyChat')
+    function addSystemMessage(message, messageId, createdAt, senderId) {
+     const emptyChat = document.getElementById('emptyChat')
+
       if (emptyChat) {
         emptyChat.remove()
       }
@@ -639,10 +666,22 @@
         return
       }
 
-      messages.appendChild(createSystemMessageElement(message, messageId, createdAt))
+      let displayMessage = message
+
+      if (senderId === currentUserId) {
+        displayMessage = "You took a screenshot of the chat."
+      }
+
+      messages.appendChild(
+        createSystemMessageElement(
+          displayMessage,
+          messageId,
+          createdAt
+        )
+      )
+
       messages.scrollTop = messages.scrollHeight
     }
-    
     messages.scrollTop = messages.scrollHeight
 
     messages.addEventListener("scroll", async()=>{
@@ -731,7 +770,8 @@
         hasNotifiedForOpenSnap = true
 
         const payload = {
-            screenshot: true
+            screenshot: true,
+            sender_id: currentUserId
         }
 
         console.log("Sending:", payload)
