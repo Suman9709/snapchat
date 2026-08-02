@@ -65,6 +65,51 @@ def push_unseen_snap_update(user_id, friend_id, unseen_snap_count):
         )
 
 
+def push_chat_list_updates(conversation, message):
+    channel_layer = get_channel_layer()
+    if not channel_layer:
+        return
+
+    participants = list(conversation.participants.all())
+    for user in participants:
+        if user.id == message.sender_id:
+            friend = next(
+                (participant for participant in participants if participant.id != user.id),
+                None,
+            )
+        else:
+            friend = message.sender
+
+        if not friend:
+            continue
+
+        unseen_snap_count = 0
+        if message.image and user.id != message.sender_id:
+            unseen_snap_count = Message.objects.filter(
+                conversation=conversation,
+                sender=message.sender,
+                image__isnull=False,
+                seen=False,
+            ).count()
+
+        async_to_sync(channel_layer.group_send)(
+            f"user_{user.id}",
+            {
+                "type": "chat_list_update",
+                "friend_id": friend.id,
+                "message": message.message,
+                "image": message.image.url if message.image else None,
+                "has_image": bool(message.image),
+                "timestamp": timezone.localtime(message.created_at).strftime("%H:%M"),
+                "created_at": message.created_at.isoformat(),
+                "message_id": message.id,
+                "sender_id": message.sender_id,
+                "username": message.sender.username,
+                "unseen_snap_count": unseen_snap_count,
+            },
+        )
+
+
 @ensure_csrf_cookie
 @require_http_methods(["GET", "POST"])
 def register_view(request):
@@ -301,6 +346,7 @@ def send_chat_message(request, id):
                 "is_system": False,
             },
         )
+    push_chat_list_updates(conversation, message)
 
     return JsonResponse(payload)
    
@@ -333,8 +379,6 @@ def upload_snap(request):
         message = message_text
         
     )
-    update_snap_streak(conversation, request.user)
-    
     if image:
         print("STREAK UPDATE CALLED")
         print("Conversation:", conversation.id)
@@ -376,6 +420,7 @@ def upload_snap(request):
         )
         for recipient_id in recipient_ids:
             push_unseen_snap_update(recipient_id, request.user.id, unseen_snap_count)
+    push_chat_list_updates(conversation, message)
 
     return JsonResponse(payload)
 
@@ -719,6 +764,7 @@ def send_snap(request):
                     "message_id": message.id,
                 },
             )
+            push_chat_list_updates(message.conversation, message)
     
     return JsonResponse({
         "message": "snap sent",

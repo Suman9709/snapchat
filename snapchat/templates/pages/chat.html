@@ -120,11 +120,13 @@
                       {% endif %}
                     </span>
                     <!-- Text -->
-                    {% if chat.unseen_snap_count > 0 %}
-                      <span class="text-xs font-medium text-purple-600 leading-none">New Snap</span>
-                    {% else %}
-                      <span class="text-xs font-medium text-gray-600 leading-none">Tap to chat</span>
-                    {% endif %}
+                    <span class="text-xs font-medium {% if chat.unseen_snap_count > 0 %}text-purple-600{% else %}text-gray-600{% endif %} leading-none" data-new-snap-label="{{ chat.friend.id }}">
+                      {% if chat.unseen_snap_count > 0 %}
+                        New Snap
+                      {% else %}
+                        Tap to chat
+                      {% endif %}
+                    </span>
 
                     <!-- New Snap -->
                   </div>
@@ -146,9 +148,11 @@
             <!-- Right Side -->
 
             <div class="flex flex-col items-end gap-2">
-              {% if chat.last_message %}
-                <span class="text-xs text-gray-400">{{ chat.last_message.created_at|timesince }} ago</span>
-              {% endif %}
+              <span class="text-xs text-gray-400 {% if not chat.last_message %}hidden{% endif %}" data-last-message-time="{{ chat.friend.id }}">
+                {% if chat.last_message %}
+                  {{ chat.last_message.created_at|timesince }} ago
+                {% endif %}
+              </span>
 
               <div class="flex gap-2">
                 {% if chat.conversation and chat.conversation.streak > 0 %}
@@ -179,13 +183,29 @@
     function formatUnseenSnapCount(count) {
       return count > 99 ? '99+' : String(count)
     }
+
+    function truncateText(text, maxLength = 25) {
+      if (!text) {
+        return ''
+      }
+      return text.length > maxLength ? `${text.slice(0, maxLength - 3)}...` : text
+    }
+
+    function moveChatRowToTop(friendId) {
+      const row = document.querySelector(`[data-chat-row="${friendId}"]`)
+      if (!row || !row.parentElement) {
+        return
+      }
+      row.parentElement.insertBefore(row, row.parentElement.firstElementChild)
+    }
     
     function updateSnapRow(friendId, unseenSnapCount) {
       const snapRow = document.querySelector(`[data-new-snap-row="${friendId}"]`)
       const badge = document.querySelector(`[data-unseen-snap-badge="${friendId}"]`)
       const lastMessageText = document.querySelector(`[data-last-message-text="${friendId}"]`)
+      const snapLabel = document.querySelector(`[data-new-snap-label="${friendId}"]`)
     
-      if (!snapRow || !badge || !lastMessageText) {
+      if (!snapRow || !badge || !lastMessageText || !snapLabel) {
         return
       }
     
@@ -198,6 +218,38 @@
       } else {
         badge.classList.add('hidden')
       }
+
+      snapLabel.textContent = unseenSnapCount > 0 ? 'New Snap' : 'Tap to chat'
+      snapLabel.classList.toggle('text-purple-600', unseenSnapCount > 0)
+      snapLabel.classList.toggle('text-gray-600', unseenSnapCount <= 0)
+    }
+
+    function updateChatListRow(data) {
+      const friendId = Number(data.friend_id)
+      if (!friendId) {
+        return
+      }
+
+      const snapRow = document.querySelector(`[data-new-snap-row="${friendId}"]`)
+      const lastMessageText = document.querySelector(`[data-last-message-text="${friendId}"]`)
+      const lastMessageTime = document.querySelector(`[data-last-message-time="${friendId}"]`)
+
+      if (data.has_image) {
+        updateSnapRow(friendId, Number(data.unseen_snap_count || 0))
+      } else if (lastMessageText) {
+        if (snapRow) {
+          snapRow.classList.add('hidden')
+        }
+        lastMessageText.classList.remove('hidden')
+        lastMessageText.textContent = truncateText(data.message || 'New message')
+      }
+
+      if (lastMessageTime) {
+        lastMessageTime.classList.remove('hidden')
+        lastMessageTime.textContent = 'now'
+      }
+
+      moveChatRowToTop(friendId)
     }
     
     function connectNotificationSocket() {
@@ -222,6 +274,12 @@
     
       notificationSocket.onmessage = function (event) {
         const data = JSON.parse(event.data)
+
+        if (data.type === 'chat_list_update') {
+          updateChatListRow(data)
+          return
+        }
+
         if (data.type !== 'unseen_snap_update') {
           return
         }

@@ -1,4 +1,3 @@
-from email.mime import image
 import json
 from json import JSONDecodeError
 
@@ -34,7 +33,8 @@ class ChatConsume(AsyncWebsocketConsumer):
         print(f"Connected to room: {self.room_group_name}")
         
     async def disconnect(self, close_code):
-        await self.set_offline(self.scope['user'])
+        if self.scope["user"].is_authenticated:
+            await self.set_offline(self.scope['user'])
         if hasattr(self, 'room_group_name'):
             await self.channel_layer.group_discard(
                 self.room_group_name,
@@ -69,6 +69,7 @@ class ChatConsume(AsyncWebsocketConsumer):
                     "message_id": saved_message["id"],
                 },
             )
+            await self.notify_chat_list_updates(saved_message["id"])
             return
 
         message = data.get("message")
@@ -102,6 +103,7 @@ class ChatConsume(AsyncWebsocketConsumer):
         )
         if saved_message.get("image"):
             await self.notify_unseen_snap_updates(sender_id=user.id)
+        await self.notify_chat_list_updates(saved_message["id"])
         print("MESSAGE SENT TO GROUP:", self.room_group_name)
         
     async def chat_message(self, event):
@@ -238,6 +240,75 @@ class ChatConsume(AsyncWebsocketConsumer):
             for recipient_id in recipient_ids
         ]
 
+    async def notify_chat_list_updates(self, message_id):
+        updates = await self.get_chat_list_updates(message_id)
+        for update in updates:
+            await self.channel_layer.group_send(
+                f"user_{update['user_id']}",
+                {
+                    "type": "chat_list_update",
+                    "friend_id": update["friend_id"],
+                    "message": update["message"],
+                    "image": update["image"],
+                    "has_image": update["has_image"],
+                    "timestamp": update["timestamp"],
+                    "created_at": update["created_at"],
+                    "message_id": update["message_id"],
+                    "sender_id": update["sender_id"],
+                    "username": update["username"],
+                    "unseen_snap_count": update["unseen_snap_count"],
+                },
+            )
+
+    @database_sync_to_async
+    def get_chat_list_updates(self, message_id):
+        message = (
+            Message.objects.select_related("sender", "conversation")
+            .prefetch_related("conversation__participants")
+            .get(id=message_id)
+        )
+        participants = list(message.conversation.participants.all())
+        updates = []
+
+        for user in participants:
+            if user.id == message.sender_id:
+                friend = next(
+                    (participant for participant in participants if participant.id != user.id),
+                    None,
+                )
+            else:
+                friend = message.sender
+
+            if not friend:
+                continue
+
+            unseen_snap_count = 0
+            if message.image and user.id != message.sender_id:
+                unseen_snap_count = Message.objects.filter(
+                    conversation=message.conversation,
+                    sender=message.sender,
+                    image__isnull=False,
+                    seen=False,
+                ).count()
+
+            updates.append(
+                {
+                    "user_id": user.id,
+                    "friend_id": friend.id,
+                    "message": message.message,
+                    "image": message.image.url if message.image else None,
+                    "has_image": bool(message.image),
+                    "timestamp": timezone.localtime(message.created_at).strftime("%H:%M"),
+                    "created_at": message.created_at.isoformat(),
+                    "message_id": message.id,
+                    "sender_id": message.sender_id,
+                    "username": message.sender.username,
+                    "unseen_snap_count": unseen_snap_count,
+                }
+            )
+
+        return updates
+
 
 class NotificationConsume(AsyncWebsocketConsumer):
     async def connect(self):
@@ -260,6 +331,25 @@ class NotificationConsume(AsyncWebsocketConsumer):
                 {
                     "type": "unseen_snap_update",
                     "friend_id": event["friend_id"],
+                    "unseen_snap_count": event["unseen_snap_count"],
+                }
+            )
+        )
+
+    async def chat_list_update(self, event):
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "chat_list_update",
+                    "friend_id": event["friend_id"],
+                    "message": event["message"],
+                    "image": event["image"],
+                    "has_image": event["has_image"],
+                    "timestamp": event["timestamp"],
+                    "created_at": event["created_at"],
+                    "message_id": event["message_id"],
+                    "sender_id": event["sender_id"],
+                    "username": event["username"],
                     "unseen_snap_count": event["unseen_snap_count"],
                 }
             )
